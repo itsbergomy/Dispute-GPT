@@ -28,6 +28,12 @@ Before using Dispute-GPT, you need to set up your OpenAI API key. Follow these s
 If you are more of a visual learner, here's an instructional video:
 https://www.loom.com/share/be96e1e0e9054d44af16d5f3ec62206c?sid=f6be7426-444a-4dc6-b1ee-2160b9242640
 
+# __Demo__
+This is a Demo Video of the Alpha Version of the application, check it out:
+https://www.loom.com/share/b526f2cc65a24b05a63b2528d3a72c64?sid=1f414618-8566-4377-8847-9730a5eeae8e
+
+
+
 # __Usage__
 ## Dispute Mode
 To generate dispute letters based on a __Experian__ PDF file, use the following command:
