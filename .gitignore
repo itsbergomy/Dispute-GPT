@@ -1,0 +1,10 @@
+.env
+autoCR.py
+convertjson.py
+experian markus.pdf
+Finetune GPT3.jsonl
+Finetune GPT3.txt
+finetune.py
+formatting.py
+synthetic.py
+
