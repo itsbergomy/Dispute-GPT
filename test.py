@@ -21,19 +21,22 @@ def extract_tables_from_pdf(file_path):
                 tables.append(table)
         return tables
 
-file_path = 'experian markus.pdf'
-tables = extract_tables_from_pdf(file_path) 
-# Convert the list of tables into a DataFrame
-dfs = []
-for table in tables:
-    # The column names are in the first two rows of the table
-    column_names = [item for sublist in table[:17] for item in sublist]
+# The following helper code was executed on import which caused side
+# effects when "test" was imported by other modules. It has been moved
+# under a main guard so that the heavy PDF parsing only runs when this
+# file is executed directly.
 
-    df = pd.DataFrame(table[17:], columns=column_names)
-    dfs.append(df)
+if __name__ == "__main__":
+    file_path = 'experian markus.pdf'
+    tables = extract_tables_from_pdf(file_path)
 
-# Concatenate all the DataFrames
-df = pd.concat(dfs)
+    dfs = []
+    for table in tables:
+        column_names = [item for sublist in table[:17] for item in sublist]
+        df = pd.DataFrame(table[17:], columns=column_names)
+        dfs.append(df)
+
+    df = pd.concat(dfs)
 
 
 
@@ -188,34 +191,19 @@ def generate_dispute_letters(chosen_account, actions):
                     
                     
     
-'''
-# Print each DataFrame with a divider
-for i, df in enumerate(dfs):
-    print(f"---------- DataFrame {i+1} ----------")
-    print(df)
-    print(f"---------- End of DataFrame {i+1} ----------\n")
-'''
-# Use the function to extract info and generate dispute letters
-extracted_info_list = []
-filtered_info_list = []
+    # Use the function to extract info and generate dispute letters
+    extracted_info_list = []
+    filtered_info_list = []
 
-for df in dfs:
-    extracted_info = extract_info_from_dataframe(df)
-    # Check if the extracted info contains a 'Status' that is either 'Account charged off' or 'Collection account'
-    if any('Status' in info[0] and ('Account charged off' in info[1] or 'Collection account' in info[1]) for info in extracted_info):
-        extracted_info_list.append(extracted_info)
+    for df in dfs:
+        extracted_info = extract_info_from_dataframe(df)
+        if any('Status' in info[0] and ('Account charged off' in info[1] or 'Collection account' in info[1]) for info in extracted_info):
+            extracted_info_list.append(extracted_info)
 
-   
+    for extracted_info in extracted_info_list:
+        print("---------- Extracted Info ----------")
+        print(extracted_info)
+        print("---------- End of Extracted Info ----------\n")
 
-# Generate and print the dispute letters after all the extracted info has been printed
-for extracted_info in extracted_info_list:
-    print("---------- Extracted Info ----------")
-    print(extracted_info)
-    print("---------- End of Extracted Info ----------\n") 
-
-
-# Let the user choose an account
-chosen_account = choose_account(extracted_info_list)
-
-# Generate and print the dispute letters
-generate_dispute_letters(chosen_account, actions)
+    chosen_account = choose_account(extracted_info_list)
+    generate_dispute_letters(chosen_account, actions)
