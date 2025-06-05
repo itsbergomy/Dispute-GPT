@@ -73,6 +73,14 @@ def main():
         
         from test import extract_tables_from_pdf, extract_info_from_dataframe
 
+        def process_tables(tables):
+            dfs = []
+            for table in tables:
+                column_names = [item for sublist in table[:17] for item in sublist]
+                df = pd.DataFrame(table[17:], columns=column_names)
+                dfs.append(df)
+            return dfs
+
         tables = extract_tables_from_pdf(args.pdf_path)
         dfs = process_tables(tables)
 
@@ -82,13 +90,7 @@ def main():
             if any('Status' in info[0] and ('Account charged off' in info[1] or 'Collection account' in info[1]) for info in extracted_info):
                 extracted_info_list.append(extracted_info)
 
-        def process_tables(tables):
-            dfs = []
-            for table in tables:
-                column_names = [item for sublist in table[:17] for item in sublist]
-                df = pd.DataFrame(table[17:], columns=column_names)
-                dfs.append(df)
-            return dfs
+
        
 
     elif mode == 'manual':
