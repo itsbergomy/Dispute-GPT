@@ -49,6 +49,9 @@ python cli.py --mode chat
 ```
 In chat mode, you can have a conversation with the AI assistant by typing messages as the "User." Type 'quit' to exit chat mode.
 
+# __Web Prototype__
+A minimal Flask server allows you to upload a PDF and run Dispute GPT from your browser. Start it with `python app.py` and visit `http://localhost:5000`.
+
 # __Contributing__
 We welcome contributions to Dispute-GPT. If you find any bugs, have feature suggestions/requests, or want to contribute code please create an issue or submit a pull request.
 
