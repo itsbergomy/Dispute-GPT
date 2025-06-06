@@ -21,7 +21,7 @@ def extract_tables_from_pdf(file_path):
                 tables.append(table)
         return tables
 
-file_path = 'experian markus.pdf'
+file_path = input("Enter the path to the PDF file: ")
 tables = extract_tables_from_pdf(file_path) 
 # Convert the list of tables into a DataFrame
 dfs = []
