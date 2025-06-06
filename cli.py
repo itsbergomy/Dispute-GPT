@@ -89,6 +89,7 @@ def main():
             extracted_info = extract_info_from_dataframe(df)
             if any('Status' in info[0] and ('Account charged off' in info[1] or 'Collection account' in info[1]) for info in extracted_info):
                 extracted_info_list.append(extracted_info)
+
        
 
     elif mode == 'manual':
