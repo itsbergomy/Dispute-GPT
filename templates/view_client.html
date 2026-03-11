@@ -1,0 +1,417 @@
+{% extends "base_header.html" %}
+{% block title %}{{ client.first_name }} {{ client.last_name }}{% endblock %}
+
+{% block content %}
+<main class="pt-20 pb-12 min-h-[calc(100vh-4rem)] px-6 md:px-12 max-w-7xl mx-auto">
+
+  <a href="{{ url_for('business.business_dashboard') }}"
+     class="inline-flex items-center gap-1 text-sm font-medium mb-6" style="color:var(--accent);">
+    &larr; Back to Dashboard
+  </a>
+
+  <!-- ═══════════════ CLIENT HEADER ═══════════════ -->
+  <div class="glass-card glass-card--heavy rounded-3xl p-6 md:p-8 mb-8">
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <!-- Avatar + Info -->
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold"
+             style="background:linear-gradient(135deg,var(--accent),#6366f1);color:#fff;">
+          {{ client.first_name[0] }}{{ client.last_name[0] }}
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">{{ client.first_name }} {{ client.last_name }}</h1>
+          <p class="text-sm" style="color:var(--text-secondary);">{{ client.email }}</p>
+          {% if client.city %}
+          <p class="text-xs mt-0.5" style="color:var(--text-tertiary);">
+            {{ client.city }}, {{ client.state }} {{ client.zip_code }}
+          </p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Actions Row -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- CFPB Toggle -->
+        <form method="POST" action="{{ url_for('business.toggle_workflow') }}" class="flex items-center gap-2">
+          <input type="hidden" name="workflow_key" value="cfpb_collection">
+          <input type="hidden" name="enabled" value="{{ 0 if workflow_settings.get('cfpb_collection') else 1 }}">
+          <input type="hidden" name="client_id" value="{{ client.id }}">
+          <span class="text-xs font-medium" style="color:var(--text-secondary);">CFPB Auto</span>
+          <button type="submit"
+                  class="relative w-12 h-6 rounded-full transition-colors duration-200"
+                  style="background:{{ 'var(--accent)' if workflow_settings.get('cfpb_collection') else 'rgba(255,255,255,0.2)' }};">
+            <span class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200
+                         {{ 'left-6' if workflow_settings.get('cfpb_collection') else 'left-0.5' }}"></span>
+          </button>
+        </form>
+
+        <a href="{{ url_for('business.edit_client', client_id=client.id) }}"
+           class="glass-btn glass-btn--pill px-4 py-1.5 text-xs font-semibold"
+           style="background:rgba(255,255,255,0.12);">
+          Edit Client
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TOP ACTIONS BAR ═══════════════ -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+    <form id="runAnalyzerForm" method="POST" action="{{ url_for('business.run_analysis_for_client', client_id=client.id) }}">
+      <button id="runAnalyzerBtn" type="submit"
+              class="glass-card glass-card--light rounded-2xl p-4 w-full text-left hover:scale-[1.02] transition-transform cursor-pointer">
+        <div class="text-2xl mb-1">
+          <svg class="h-4 w-4 hidden animate-spin inline" id="runAnalyzerSpin" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 008 12H4z"/>
+          </svg>
+          &#x1F50D;
+        </div>
+        <span id="runAnalyzerText" class="text-sm font-semibold">Run Analyzer</span>
+        <p class="text-xs mt-0.5" style="color:var(--text-tertiary);">AI credit report analysis</p>
+      </button>
+    </form>
+
+    <form method="POST" action="{{ url_for('business.extract_for_disputegpt', client_id=client.id) }}">
+      <button type="submit"
+              class="glass-card glass-card--light rounded-2xl p-4 w-full text-left hover:scale-[1.02] transition-transform cursor-pointer">
+        <div class="text-2xl mb-1">&#x1F4CB;</div>
+        <span class="text-sm font-semibold">Extract Accounts</span>
+        <p class="text-xs mt-0.5" style="color:var(--text-tertiary);">Pull accounts from report</p>
+      </button>
+    </form>
+
+    <form method="POST" action="{{ url_for('business.mail_analysis_to_client', client_id=client.id) }}">
+      <button type="submit"
+              class="glass-card glass-card--light rounded-2xl p-4 w-full text-left hover:scale-[1.02] transition-transform cursor-pointer">
+        <div class="text-2xl mb-1">&#x1F4E7;</div>
+        <span class="text-sm font-semibold">Email Analysis</span>
+        <p class="text-xs mt-0.5" style="color:var(--text-tertiary);">Send report to client</p>
+      </button>
+    </form>
+
+    {% set cfwf = workflow_settings.get('cfpb_collection') %}
+    {% if cfwf %}
+    <form method="POST" action="{{ url_for('business.toggle_workflow') }}">
+      <input type="hidden" name="workflow_key" value="cfpb_collection">
+      <input type="hidden" name="client_id" value="{{ client.id }}">
+      <input type="hidden" name="enabled" value="1">
+      <button type="submit"
+              class="glass-card glass-card--light rounded-2xl p-4 w-full text-left hover:scale-[1.02] transition-transform cursor-pointer">
+        <div class="text-2xl mb-1">&#x1F680;</div>
+        <span class="text-sm font-semibold">CFPB Flow</span>
+        <p class="text-xs mt-0.5" style="color:var(--text-tertiary);">Run complaint pipeline</p>
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+    <!-- ═══════════════ LEFT COLUMN (3/5) ═══════════════ -->
+    <div class="lg:col-span-3 space-y-6">
+
+      <!-- DisputeGPT -->
+      <div class="glass-card glass-card--heavy rounded-3xl p-6">
+        <h2 class="text-lg font-bold mb-4">DisputeGPT&trade;</h2>
+
+        <form method="POST" action="{{ url_for('business.run_disputegpt_flow', client_id=client.id) }}">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="glass-label text-xs mb-1">Account</label>
+              <select name="account_number" class="glass-select w-full text-sm">
+                {% for item in client_parsed_accounts %}
+                  <option value="{{ item.account_number }}">{{ item.account_name }} &ndash; {{ item.account_number }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="glass-label text-xs mb-1">Bureau</label>
+              <select name="entity" class="glass-select w-full text-sm">
+                <option>Experian</option><option>TransUnion</option><option>Equifax</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="glass-label text-xs mb-1">Action</label>
+              <input name="action" placeholder="e.g. Delete this account" class="glass-input w-full text-sm"/>
+            </div>
+            <div>
+              <label class="glass-label text-xs mb-1">Issue</label>
+              <input name="issue" placeholder="e.g. This account is inaccurate" class="glass-input w-full text-sm"/>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="glass-label text-xs mb-1">Prompt Pack</label>
+              <select name="prompt_pack" class="glass-select w-full text-sm">
+                <option value="default">Default</option>
+                <option value="arbitration">Arbitration</option>
+                <option value="consumer_law">Consumer Law</option>
+                <option value="ACDV_response">ACDV Response</option>
+              </select>
+            </div>
+            <div>
+              <label class="glass-label text-xs mb-1">Template</label>
+              <select name="custom_letter_id" class="glass-select w-full text-sm">
+                <option value="">&mdash; none &mdash;</option>
+                {% for tpl in current_user.custom_letters %}
+                  <option value="{{ tpl.id }}" {% if tpl.id|string == custom_id %}selected{% endif %}>{{ tpl.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="glass-btn glass-btn--primary w-full">
+            Generate Letter
+          </button>
+        </form>
+      </div>
+
+      <!-- Client Documents -->
+      <div class="glass-card glass-card--heavy rounded-3xl p-6">
+        <h2 class="text-lg font-bold mb-4">Documents</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {% if client.id_filename %}
+          <a href="{{ url_for('business.client_file', client_id=client.id, filetype='id') }}" target="_blank"
+             class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-3 hover:scale-[1.01] transition-transform">
+            <span class="text-2xl">&#x1F194;</span>
+            <div>
+              <div class="text-sm font-semibold">ID Document</div>
+              <div class="text-xs" style="color:var(--text-tertiary);">Click to view</div>
+            </div>
+          </a>
+          {% endif %}
+
+          {% if client.ssn_filename %}
+          <a href="{{ url_for('business.client_file', client_id=client.id, filetype='ssn') }}" target="_blank"
+             class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-3 hover:scale-[1.01] transition-transform">
+            <span class="text-2xl">&#x1F4B3;</span>
+            <div>
+              <div class="text-sm font-semibold">SSN Card</div>
+              <div class="text-xs" style="color:var(--text-tertiary);">Click to view</div>
+            </div>
+          </a>
+          {% endif %}
+
+          {% if client.pdf_filename %}
+          <a href="{{ url_for('business.client_file', client_id=client.id, filetype='pdf') }}" target="_blank"
+             class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-3 hover:scale-[1.01] transition-transform">
+            <span class="text-2xl">&#x1F4C4;</span>
+            <div>
+              <div class="text-sm font-semibold">Credit Report</div>
+              <div class="text-xs" style="color:var(--text-tertiary);">Click to view</div>
+            </div>
+          </a>
+          {% endif %}
+
+          {% if client.notes %}
+          <div class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-3">
+            <span class="text-2xl">&#x1F5D2;</span>
+            <div>
+              <div class="text-sm font-semibold">Notes</div>
+              <div class="text-xs" style="color:var(--text-tertiary);">{{ client.notes[:60] }}{% if client.notes|length > 60 %}...{% endif %}</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Correspondence -->
+        <div class="mt-5">
+          <h3 class="text-sm font-semibold mb-2" style="color:var(--text-secondary);">Correspondence</h3>
+          {% if docs %}
+          <div class="space-y-2">
+            {% for doc in docs %}
+            <div class="glass-card glass-card--light rounded-xl p-3 flex items-center justify-between">
+              <div class="text-sm">
+                <span class="font-medium">{{ doc.filename }}</span>
+                <span class="text-xs ml-2" style="color:var(--text-tertiary);">{{ doc.uploaded_at }}</span>
+              </div>
+              <a href="{{ url_for('business.view_correspondence', filename=doc.filename) }}" target="_blank"
+                 class="glass-btn glass-btn--primary glass-btn--pill text-xs px-3 py-1">View</a>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-sm" style="color:var(--text-tertiary);">No correspondence uploaded.</p>
+          {% endif %}
+
+          <form method="POST" action="{{ url_for('business.upload_correspondence', client_id=client.id) }}"
+                enctype="multipart/form-data" class="mt-3 flex gap-2 items-end">
+            <input type="file" name="correspondence_file" accept="application/pdf" required
+                   class="glass-input flex-1 text-sm" />
+            <button type="submit" class="glass-btn glass-btn--primary glass-btn--pill text-xs px-4 py-2">Upload</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Mailed Letters -->
+      <div class="glass-card glass-card--heavy rounded-3xl p-6">
+        <h2 class="text-lg font-bold mb-4">Mailed Letters</h2>
+        {% if letters %}
+        <div class="space-y-2">
+          {% for L in letters %}
+          <div class="glass-card glass-card--light rounded-xl p-3 flex items-center justify-between">
+            <div>
+              <div class="text-sm font-medium">Letter sent {{ L.created_at.strftime('%b %d, %Y') if L.created_at else '' }}</div>
+            </div>
+            {% if L.pdf_url %}
+            <a href="{{ L.pdf_url }}" target="_blank" class="glass-btn glass-btn--primary glass-btn--pill text-xs px-3 py-1">View PDF</a>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm" style="color:var(--text-tertiary);">No letters mailed yet.</p>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- ═══════════════ RIGHT COLUMN (2/5) — PDF + Analysis ═══════════════ -->
+    <div class="lg:col-span-2 space-y-6">
+
+      <!-- Credit Report Preview -->
+      {% if client.pdf_filename %}
+      <div class="glass-card glass-card--heavy rounded-3xl overflow-hidden">
+        <div class="px-5 py-3 border-b border-white/10">
+          <h3 class="text-sm font-semibold">Credit Report</h3>
+        </div>
+        <object
+          data="{{ url_for('business.client_file', client_id=client.id, filetype='pdf') }}"
+          type="application/pdf"
+          class="w-full" style="height:60vh;">
+          <p class="p-6 text-center text-sm" style="color:var(--text-tertiary);">
+            Inline PDF not supported.
+            <a href="{{ url_for('business.client_file', client_id=client.id, filetype='pdf') }}"
+               class="font-medium" style="color:var(--accent);">Download</a>
+          </p>
+        </object>
+      </div>
+      {% endif %}
+
+      <!-- Analysis Results -->
+      <div id="analyzerStatus" class="text-sm" style="color:var(--text-secondary);" aria-live="polite"></div>
+
+      {% if client.analyses %}
+        {% for analysis in client.analyses|sort(attribute='created_at', reverse=True) %}
+          {% set data = analysis.analysis_json | loads %}
+          <div class="glass-card glass-card--heavy rounded-3xl p-5">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="text-sm font-bold">Analysis &mdash; {{ analysis.created_at.strftime("%b %d, %Y") }}</h3>
+              <span class="text-xs glass-badge glass-badge--info">{{ data.status_text }}</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+                <div class="text-xs" style="color:var(--text-tertiary);">FICO</div>
+                <div class="text-xl font-bold">{{ data.fico_score }}</div>
+              </div>
+              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+                <div class="text-xs" style="color:var(--text-tertiary);">Utilization</div>
+                <div class="text-xl font-bold">{{ data.utilization }}%</div>
+              </div>
+              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+                <div class="text-xs" style="color:var(--text-tertiary);">Collections</div>
+                <div class="text-xl font-bold">{{ data.num_collections }}</div>
+              </div>
+              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+                <div class="text-xs" style="color:var(--text-tertiary);">Total Debt</div>
+                <div class="text-xl font-bold">${{ data.total_debt }}</div>
+              </div>
+              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+                <div class="text-xs" style="color:var(--text-tertiary);">Negatives</div>
+                <div class="text-xl font-bold">{{ data.negative_count }}</div>
+              </div>
+              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+                <div class="text-xs" style="color:var(--text-tertiary);">Credit Age</div>
+                <div class="text-sm font-bold">{{ data.oldest_account_age }}</div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <h4 class="text-xs font-semibold mb-1" style="color:var(--text-secondary);">Summary</h4>
+              <p class="text-sm glass-card glass-card--light rounded-xl p-3">{{ data.summary_text }}</p>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-semibold mb-1" style="color:var(--text-secondary);">Recommendations</h4>
+              <form method="POST" action="{{ url_for('business.update_recommendations', analysis_id=analysis.id) }}">
+                <textarea name="recommendations" rows="3"
+                          class="glass-input glass-textarea w-full text-sm"
+                          placeholder="Enter recommendations...">{% for rec in data.recommendations %}{{ rec }}{% if not loop.last %}
+{% endif %}{% endfor %}</textarea>
+                <button type="submit" class="glass-btn glass-btn--primary glass-btn--pill text-xs px-4 py-1.5 mt-2">Save</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="glass-card glass-card--light rounded-3xl p-6 text-center">
+          <div class="text-3xl mb-2">&#x1F4CA;</div>
+          <p class="text-sm" style="color:var(--text-tertiary);">No analyses yet. Click "Run Analyzer" above.</p>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  // Run Report Analyzer with loading state
+  (function () {
+    const form = document.getElementById('runAnalyzerForm');
+    const btn  = document.getElementById('runAnalyzerBtn');
+    const spin = document.getElementById('runAnalyzerSpin');
+    const text = document.getElementById('runAnalyzerText');
+    const status = document.getElementById('analyzerStatus');
+
+    if (!form || !btn) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      btn.style.opacity = '0.6';
+      btn.style.pointerEvents = 'none';
+      if (spin) spin.classList.remove('hidden');
+      if (text) text.textContent = 'Analyzing...';
+      if (status) status.textContent = 'Starting analysis...';
+
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'X-Requested-With': 'fetch' }
+        });
+
+        if (res.redirected) { window.location.href = res.url; return; }
+
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          const data = await res.json();
+          if (data.redirect) { window.location.href = data.redirect; return; }
+          if (status) status.textContent = data.message || 'Analysis started.';
+          setTimeout(() => window.location.reload(), 2000);
+        } else if (res.ok) {
+          window.location.reload();
+        } else {
+          throw new Error(await res.text());
+        }
+      } catch (err) {
+        console.error(err);
+        if (status) status.textContent = 'Failed: ' + (err?.message || '');
+      } finally {
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        if (spin) spin.classList.add('hidden');
+        if (text) text.textContent = 'Run Analyzer';
+      }
+    });
+  })();
+</script>
+{% endblock %}

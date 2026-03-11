@@ -1,0 +1,73 @@
+{% extends "base_header.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 px-4">
+  <a href="{{ url_for('list_custom_letters') }}"
+     class="glass-btn glass-btn--ghost mb-4 inline-flex items-center gap-1 text-sm">← Back to Letters</a>
+  <h1 class="text-2xl font-extrabold text-gray-900 mb-6">
+    {% if letter %}
+      Edit Template
+    {% else %}
+      New Template
+    {% endif %}
+  </h1>
+
+  <form method="POST" class="space-y-6 glass-card glass-card--heavy glass-p-lg">
+    <!-- Name -->
+    <div>
+      <label for="name" class="glass-label mb-1">
+        Template Name <span class="text-red-500">*</span>
+      </label>
+      <input
+        id="name"
+        name="name"
+        type="text"
+        value="{{ letter.name if letter else '' }}"
+        required
+        class="glass-input w-full"
+      >
+    </div>
+
+    <!-- Subject -->
+    <div>
+      <label for="subject" class="glass-label mb-1">
+        Letter Subject
+      </label>
+      <input
+        id="subject"
+        name="subject"
+        type="text"
+        value="{{ letter.subject if letter else '' }}"
+        class="glass-input w-full"
+      >
+    </div>
+
+    <!-- Body -->
+    <div>
+      <label for="body" class="glass-label mb-1">
+        Letter Body <span class="text-red-500">*</span>
+      </label>
+      <textarea
+        id="body"
+        name="body"
+        rows="10"
+        required
+        class="glass-input glass-textarea w-full resize-none"
+      >{{ letter.body if letter else '' }}</textarea>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex items-center justify-end space-x-4">
+      <a href="{{ url_for('list_custom_letters') }}"
+         class="glass-btn glass-btn--ghost">
+        Cancel
+      </a>
+      <button
+        type="submit"
+        class="glass-btn glass-btn--primary"
+      >
+        {% if letter %}Save Changes{% else %}Create Template{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

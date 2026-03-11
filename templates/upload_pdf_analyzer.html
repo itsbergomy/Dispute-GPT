@@ -1,0 +1,79 @@
+{# templates/upload_pdf_analyzer.html #}
+{% extends "base_header.html" %}
+{% block title %}Upload Credit Report{% endblock %}
+
+{% block content %}
+<main class="flex items-center justify-center min-h-[80vh] px-4 py-12">
+  <div class="glass-card glass-card--heavy glass-p w-full max-w-md text-center glass-animate-in">
+
+    <a href="{% if current_user.is_authenticated and current_user.plan == 'business' %}{{ url_for('business.business_dashboard') }}{% else %}{{ url_for('disputes.index') }}{% endif %}"
+       class="inline-block mb-4 glass-btn glass-btn--ghost p-3 rounded-full">← Back</a>
+    <h1 class="text-2xl font-extrabold text-blue-900 mb-2">Upload Your Credit Report</h1>
+    <p class="text-gray-600 mb-6">
+      Hi {{ session.intake.first_name }}! Please upload your credit report for AI analysis.
+    </p>
+
+    <form action="{{ url_for('report_analyzer') }}" method="POST" enctype="multipart/form-data" id="uploadForm" class="space-y-6">
+      <!-- Dashed upload area -->
+      <label for="creditReport" class="block cursor-pointer">
+        <div class="upload-area border-2 border-dashed border-blue-600 hover:bg-blue-50 transition rounded-xl p-8">
+          <div class="text-5xl text-blue-600 mb-4">📄</div>
+          <div class="upload-text text-lg font-semibold text-gray-700">Click or drop a file here</div>
+          <div class="upload-subtext text-sm text-gray-500">PDF only</div>
+        </div>
+      </label>
+      <input
+        type="file"
+        name="credit_report"
+        id="creditReport"
+        accept=".pdf"
+        required
+        class="hidden"
+      />
+
+      <!-- Submit button -->
+      <button
+        type="submit"
+        id="submitBtn"
+        class="w-full glass-btn glass-btn--primary disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled
+      >
+        <span id="btnText">Analyze My Credit Report</span>
+        <span id="btnLoader" class="hidden">
+          <svg class="inline-block animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4H9a4 4 0 00-4 4z"></path></svg>
+          Processing...
+        </span>
+      </button>
+    </form>
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('creditReport');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnLoader = document.getElementById('btnLoader');
+    const uploadText = document.querySelector('.upload-text');
+    const uploadSub = document.querySelector('.upload-subtext');
+
+    input.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      uploadText.textContent = file.name;
+      uploadSub.textContent = 'Ready for analysis';
+      submitBtn.disabled = false;
+    });
+
+    document.getElementById('uploadForm').addEventListener('submit', () => {
+      submitBtn.disabled = true;
+      btnText.classList.add('hidden');
+      btnLoader.classList.remove('hidden');
+      uploadText.textContent = 'Analyzing your report…';
+      uploadSub.textContent = 'Please hang tight';
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base_header.html" %}
+
+{% block title %}Choose Dispute Letter Template{% endblock %}
+
+{% block content %}
+<main class="flex justify-center items-center min-h-[75vh] px-4 py-10">
+  <div class="glass-card glass-card--heavy glass-p max-w-2xl w-full text-center relative glass-animate-in">
+
+    <!-- Back Button -->
+    <a href="/define-details" class="absolute top-4 left-4 glass-btn glass-btn--ghost p-3 rounded-full">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+    </a>
+
+    <!-- Icon -->
+    <div class="text-4xl mb-4 text-blue-900">📄</div>
+
+    <h2 class="text-2xl font-bold text-[#2C3E50] mb-2">Choose Dispute Letter Template</h2>
+    <p class="text-gray-600 mb-8 text-base">Cycle through templates then select the one you prefer.</p>
+
+    <form method="POST" action="/generate-letter-screen">
+      <div class="relative glass-card glass-card--light glass-p-sm mb-6 min-h-[120px] font-medium italic">
+        <div class="absolute left-4 top-1/2 transform -translate-y-1/2">
+          <button type="button" onclick="prevTemplate()" class="bg-white border border-gray-300 w-10 h-10 rounded-full text-lg hover:bg-gray-100">&#8249;</button>
+        </div>
+        <div class="absolute right-4 top-1/2 transform -translate-y-1/2">
+          <button type="button" onclick="nextTemplate()" class="bg-white border border-gray-300 w-10 h-10 rounded-full text-lg hover:bg-gray-100">&#8250;</button>
+        </div>
+        <div id="templateDisplay" class="mx-12 text-left"></div>
+      </div>
+      <input type="hidden" name="template_text" id="templateInput" />
+      <button type="submit" class="w-full glass-btn glass-btn--primary">
+        Use This Template
+      </button>
+    </form>
+  </div>
+</main>
+
+<script>
+  const templates = {{ templates|tojson }};
+  let currentIndex = 0;
+
+  function updateTemplate() {
+    const display = document.getElementById('templateDisplay');
+    const input = document.getElementById('templateInput');
+    display.textContent = templates[currentIndex];
+    input.value = templates[currentIndex];
+  }
+
+  function prevTemplate() {
+    currentIndex = (currentIndex - 1 + templates.length) % templates.length;
+    updateTemplate();
+  }
+
+  function nextTemplate() {
+    currentIndex = (currentIndex + 1) % templates.length;
+    updateTemplate();
+  }
+
+  window.onload = updateTemplate;
+</script>
+{% endblock %}
+
+

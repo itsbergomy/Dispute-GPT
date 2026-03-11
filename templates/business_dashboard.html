@@ -1,0 +1,339 @@
+{% extends "base_header.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<main class="pt-20 min-h-screen px-4 md:px-8 lg:px-16 pb-12 space-y-8">
+
+  <!-- ═══ Greeting ═══ -->
+  <div class="glass-animate-in">
+    <h1 class="text-3xl font-bold tracking-tight">Welcome back, {{ current_user.first_name }}</h1>
+    <p class="text-[var(--text-secondary)] mt-1">Here's what's happening across your clients.</p>
+  </div>
+
+  <!-- ═══ 4 Metric Cards ═══ -->
+  <div class="grid gap-5 grid-cols-2 lg:grid-cols-4 glass-stagger">
+
+    <div class="glass-metric glass-metric--blue">
+      <p class="glass-metric__label">Total Clients</p>
+      <p class="glass-metric__value">{{ stats.total_clients }}</p>
+    </div>
+
+    <div class="glass-metric glass-metric--purple">
+      <p class="glass-metric__label">Active Pipelines</p>
+      <p class="glass-metric__value">{{ stats.active_pipelines }}</p>
+    </div>
+
+    <div class="glass-metric glass-metric--green">
+      <p class="glass-metric__label">Letters Sent</p>
+      <p class="glass-metric__value">{{ stats.letters_sent }}</p>
+    </div>
+
+    <div class="glass-metric glass-metric--yellow">
+      <p class="glass-metric__label">Workflows On</p>
+      <p class="glass-metric__value">{{ stats.workflows_enabled }}</p>
+    </div>
+
+  </div>
+
+  <!-- ═══ Two-Column: Clients + Pipeline Activity ═══ -->
+  <div class="grid gap-6 grid-cols-1 lg:grid-cols-5">
+
+    <!-- LEFT — Client List (3/5) -->
+    <div class="lg:col-span-3 glass-card glass-card--heavy glass-p space-y-4 glass-animate-in">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold">Clients</h2>
+        <button id="addClientBtn"
+                class="glass-btn glass-btn--primary glass-btn--pill text-sm">
+          + Add Client
+        </button>
+      </div>
+
+      <!-- Search -->
+      <div class="relative">
+        <input type="text" id="clientSearch" placeholder="Search clients..."
+               class="glass-input pl-10" />
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]"
+             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+      </div>
+
+      <!-- Client rows -->
+      <div id="clientList" class="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+        {% if clients %}
+          {% for c in clients %}
+            <a href="{{ url_for('business.view_client', client_id=c.id) }}"
+               class="client-row glass-card glass-card--light glass-p-sm flex justify-between items-center hover:scale-[1.01] transition-transform"
+               data-name="{{ c.first_name }} {{ c.last_name }}">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold
+                            bg-gradient-to-br from-blue-400/30 to-purple-400/30 text-[var(--text-primary)]">
+                  {{ c.first_name[0] }}{{ c.last_name[0] }}
+                </div>
+                <div>
+                  <p class="font-semibold text-sm">{{ c.first_name }} {{ c.last_name }}</p>
+                  <p class="text-xs text-[var(--text-tertiary)]">{{ c.email }}</p>
+                </div>
+              </div>
+              <span class="text-xs text-[var(--text-tertiary)]">View &rarr;</span>
+            </a>
+          {% endfor %}
+        {% else %}
+          <div class="glass-card glass-card--light glass-p text-center text-[var(--text-secondary)]">
+            No clients yet. Click "+ Add Client" to get started.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- RIGHT — Pipeline Activity (2/5) -->
+    <div class="lg:col-span-2 glass-card glass-card--heavy glass-p space-y-4 glass-animate-in" style="animation-delay:.15s">
+      <h2 class="text-xl font-bold">Pipeline Activity</h2>
+
+      <div class="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+        {% if pipelines %}
+          {% for p in pipelines %}
+            <div class="glass-card glass-card--light glass-p-sm space-y-1">
+              <div class="flex justify-between items-center">
+                <span class="font-semibold text-sm">
+                  {% if p.client %}
+                    {{ p.client.first_name }} {{ p.client.last_name }}
+                  {% else %}
+                    Pipeline #{{ p.id }}
+                  {% endif %}
+                </span>
+                {% set state_colors = {
+                  'completed': 'glass-badge--success',
+                  'failed': 'glass-badge--danger',
+                  'awaiting_response': 'glass-badge--warning',
+                  'review': 'glass-badge--info'
+                } %}
+                <span class="glass-badge {{ state_colors.get(p.state, 'glass-badge--neutral') }}">
+                  {{ p.state.replace('_', ' ') }}
+                </span>
+              </div>
+              <p class="text-xs text-[var(--text-tertiary)]">
+                Round {{ p.current_round }} of 5
+                &middot; Started {{ p.created_at.strftime('%b %d') }}
+              </p>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="glass-card glass-card--light glass-p text-center text-[var(--text-secondary)] text-sm">
+            No pipelines yet. Start one from a client's page.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ AI Agent Section ═══ -->
+  <div class="glass-card glass-card--heavy glass-p glass-animate-in" style="animation-delay:.25s">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div>
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <span class="text-2xl">🤖</span> AI Agent
+        </h2>
+        <p class="text-sm text-[var(--text-secondary)] mt-1">
+          Toggle automated dispute workflows per client. When enabled, the agent handles the full dispute lifecycle.
+        </p>
+      </div>
+
+      <form method="POST" action="{{ url_for('business.toggle_workflow') }}"
+            id="agentForm" class="flex items-center gap-4 flex-shrink-0">
+
+        <select name="client_id" id="agent-client-select"
+                class="glass-input glass-select w-48 text-sm !py-2">
+          <option value="">Select Client</option>
+          {% for c in clients %}
+            <option value="{{ c.id }}"
+              {% if selected_client and selected_client.id == c.id %}selected{% endif %}>
+              {{ c.first_name }} {{ c.last_name }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <input type="hidden" name="workflow_key" value="cfpb_collection">
+        <input type="hidden" name="enabled" id="agent-enabled" value="{{ 1 if workflow_enabled else 0 }}">
+
+        <!-- Pure CSS toggle — no extra dot span -->
+        <button type="button" id="agent-toggle"
+                class="glass-toggle {{ 'glass-toggle--active' if workflow_enabled else '' }}"
+                aria-label="Toggle workflow">
+        </button>
+
+        <button type="submit" id="agent-submit" class="hidden"></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══ Quick Links ═══ -->
+  <div class="grid gap-4 grid-cols-1 sm:grid-cols-3 glass-stagger">
+    <a href="{{ url_for('business.list_custom_letters') }}"
+       class="glass-card glass-card--light glass-p-sm flex items-center gap-3 hover:scale-[1.02] transition-transform">
+      <span class="text-2xl">📩</span>
+      <div>
+        <p class="font-semibold text-sm">Custom Letters</p>
+        <p class="text-xs text-[var(--text-tertiary)]">Manage letter templates</p>
+      </div>
+    </a>
+    <a href="{{ url_for('disputes.prompt_packs') }}"
+       class="glass-card glass-card--light glass-p-sm flex items-center gap-3 hover:scale-[1.02] transition-transform">
+      <span class="text-2xl">📝</span>
+      <div>
+        <p class="font-semibold text-sm">Prompt Packs</p>
+        <p class="text-xs text-[var(--text-tertiary)]">Switch dispute templates</p>
+      </div>
+    </a>
+    <a href="{{ url_for('disputes.funding_sequencer') }}"
+       class="glass-card glass-card--light glass-p-sm flex items-center gap-3 hover:scale-[1.02] transition-transform">
+      <span class="text-2xl">💰</span>
+      <div>
+        <p class="font-semibold text-sm">Funding Sequencer</p>
+        <p class="text-xs text-[var(--text-tertiary)]">Credit-building tools</p>
+      </div>
+    </a>
+  </div>
+
+</main>
+
+<!-- ═══ Add Client Modal — Full CRM Intake ═══ -->
+<div id="addClientModal" class="hidden fixed inset-0 z-50 bg-black/30 backdrop-blur-sm">
+  <div class="absolute inset-0 overflow-y-auto flex items-start justify-center pt-6 pb-6">
+    <div class="glass-card glass-card--heavy rounded-3xl w-full max-w-2xl mx-4 glass-animate-in" style="padding:1.25rem 1.5rem;">
+
+      <!-- Header with close -->
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-lg font-bold">New Client</h3>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-xl font-bold hover:bg-white/15 transition">&times;</button>
+      </div>
+
+      <form method="POST" action="{{ url_for('business.create_client') }}" enctype="multipart/form-data">
+
+        <!-- Identity -->
+        <div class="grid grid-cols-2 gap-x-3 gap-y-2 mb-3">
+          <div>
+            <label class="block text-sm font-semibold mb-0.5" style="color:var(--text-primary);">First Name *</label>
+            <input name="first_name" required class="glass-input" placeholder="Jane">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-0.5" style="color:var(--text-primary);">Last Name *</label>
+            <input name="last_name" required class="glass-input" placeholder="Doe">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm font-semibold mb-0.5" style="color:var(--text-primary);">Email *</label>
+            <input name="email" type="email" required class="glass-input" placeholder="jane@example.com">
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div class="grid grid-cols-2 gap-x-3 gap-y-2 mb-3">
+          <div>
+            <label class="block text-sm font-semibold mb-0.5" style="color:var(--text-primary);">Address</label>
+            <input name="address_line1" class="glass-input" placeholder="123 Main St">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-0.5" style="color:var(--text-primary);">Apt / Suite</label>
+            <input name="address_line2" class="glass-input" placeholder="Apt 4B">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-0.5" style="color:var(--text-primary);">City</label>
+            <input name="city" class="glass-input" placeholder="Los Angeles">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-sm font-semibold mb-0.5" style="color:var(--text-primary);">State</label>
+              <input name="state" class="glass-input" placeholder="CA">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-0.5" style="color:var(--text-primary);">ZIP</label>
+              <input name="zip_code" class="glass-input" placeholder="90001">
+            </div>
+          </div>
+        </div>
+
+        <!-- Documents — compact 2x2 -->
+        <p class="text-sm font-semibold mb-1" style="color:var(--text-primary);">Documents</p>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <div>
+            <label class="block text-xs font-semibold mb-0.5" style="color:var(--text-secondary);">Credit Report</label>
+            <input name="pdf_file" type="file" accept=".pdf" class="glass-input text-xs py-1 file:mr-2 file:py-0.5 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-[var(--accent)]">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-0.5" style="color:var(--text-secondary);">Photo ID</label>
+            <input name="id_file" type="file" accept="image/*,.pdf" class="glass-input text-xs py-1 file:mr-2 file:py-0.5 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-[var(--accent)]">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-0.5" style="color:var(--text-secondary);">SSN Card</label>
+            <input name="ssn_file" type="file" accept="image/*,.pdf" class="glass-input text-xs py-1 file:mr-2 file:py-0.5 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-[var(--accent)]">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-0.5" style="color:var(--text-secondary);">Utility Bill</label>
+            <input name="utility_file" type="file" accept="image/*,.pdf" class="glass-input text-xs py-1 file:mr-2 file:py-0.5 file:px-2 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-[var(--accent)]">
+          </div>
+        </div>
+
+        <!-- Notes — compact -->
+        <div class="mb-3">
+          <label class="block text-sm font-semibold mb-0.5" style="color:var(--text-primary);">Notes</label>
+          <textarea name="notes" rows="2" class="glass-input w-full" style="min-height:auto;resize:vertical;" placeholder="Initial notes about client situation..."></textarea>
+        </div>
+
+        <button type="submit" class="glass-btn glass-btn--primary glass-btn--full rounded-2xl">
+          Create Client
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ── Client search filter ──
+  const searchInput = document.getElementById('clientSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.toLowerCase();
+      document.querySelectorAll('.client-row').forEach(row => {
+        const name = row.dataset.name.toLowerCase();
+        row.style.display = name.includes(q) ? '' : 'none';
+      });
+    });
+  }
+
+  // ── AI Agent toggle (pure CSS glass-toggle) ──
+  const agentToggle  = document.getElementById('agent-toggle');
+  const agentEnabled = document.getElementById('agent-enabled');
+  const agentSelect  = document.getElementById('agent-client-select');
+  const agentSubmit  = document.getElementById('agent-submit');
+
+  if (agentToggle) {
+    agentToggle.addEventListener('click', () => {
+      if (!agentSelect.value) {
+        alert('Please select a client first.');
+        return;
+      }
+      const isOn = agentEnabled.value === '1';
+      agentToggle.classList.toggle('glass-toggle--active', !isOn);
+      agentEnabled.value = isOn ? '0' : '1';
+      agentSubmit.click();
+    });
+  }
+
+  // ── Add Client Modal ──
+  const addBtn = document.getElementById('addClientBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      const m = document.getElementById('addClientModal');
+      if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+    });
+  }
+  function closeModal() {
+    const m = document.getElementById('addClientModal');
+    if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+  }
+</script>
+{% endblock %}

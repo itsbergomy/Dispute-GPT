@@ -1,0 +1,185 @@
+{% extends "base_header.html" %}
+
+{% block title %}Send Letter{% endblock %}
+
+{% block content %}
+<main class="flex justify-center items-center min-h-[90vh] px-4 py-10">
+  <div class="glass-card glass-card--heavy glass-p w-full max-w-5xl relative glass-animate-in">
+    <a href="/final-review" class="absolute top-4 left-4 glass-btn glass-btn--ghost rounded-full w-11 h-11 flex items-center justify-center">
+      &#8592;
+    </a>
+    <h2 class="text-3xl font-bold text-center text-[#2C3E50] mb-10">Send Your Letter via DocuPost</h2>
+
+    <form action="/mail-letter" method="POST" enctype="multipart/form-data" class="space-y-10">
+
+      <!-- Upload PDF -->
+      <div>
+        <label class="glass-label block mb-2">Upload Package PDF</label>
+        <input type="file" name="pdf_file" accept="application/pdf" required class="glass-input w-full"/>
+      </div>
+
+      <!-- Mail Service -->
+      <div class="space-y-6">
+        <h3 class="text-xl font-semibold text-[#2C3E50]">Mail Service</h3>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <label for="class" class="glass-label block">Service Class</label>
+            <select name="class" id="class" class="glass-input glass-select w-full">
+              <option value="usps_first_class">USPS First Class (3–10 days)</option>
+              <option value="usps_standard">USPS Standard</option>
+              <option value="usps_priority_mail">USPS Priority Mail</option>
+              <option value="usps_priority_mail_express">USPS Priority Mail Express</option>
+            </select>
+          </div>
+          <div>
+            <label for="servicelevel" class="glass-label block">Certified Options</label>
+            <select name="servicelevel" id="servicelevel" class="glass-input glass-select w-full">
+              <option value="">None</option>
+              <option value="certified">Certified</option>
+              <option value="certified_return_receipt">Certified w/ Return Receipt</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-4">
+          <label class="flex items-center gap-2 text-[#2C3E50]">
+            <input type="checkbox" name="color" value="true" class="accent-blue-900"/>
+            Print in color
+          </label>
+          <label class="flex items-center gap-2 text-[#2C3E50]">
+            <input type="checkbox" name="doublesided" value="true" checked class="accent-blue-900"/>
+            Double-sided
+          </label>
+          <label class="flex items-center gap-2 text-[#2C3E50]">
+            <input type="checkbox" name="return_envelope" value="true" class="accent-blue-900"/>
+            Include return envelope
+          </label>
+        </div>
+      </div>
+
+      <!-- Recipient -->
+      <div class="space-y-6">
+        <h3 class="text-xl font-semibold text-[#2C3E50]">To Recipient</h3>
+
+        <div class="flex gap-6">
+          <label class="flex items-center gap-2">
+            <input type="radio" name="recipient_type" value="single" checked class="accent-blue-900"/>
+            Single
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="recipient_type" value="multiple" class="accent-blue-900"/>
+            Multiple
+          </label>
+        </div>
+
+        <label class="glass-label block">Choose from address book</label>
+        <select name="to_address_book" class="glass-input glass-select w-full">
+          <option value="">— none —</option>
+        </select>
+
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <label class="glass-label block">Recipient Name</label>
+            <input name="to_name" required class="glass-input w-full"/>
+          </div>
+          <div>
+            <label class="glass-label block">Company / Attention</label>
+            <input name="to_company" class="glass-input w-full"/>
+          </div>
+        </div>
+
+        <label class="glass-label block">Address Line 1</label>
+        <input name="to_address1" required class="glass-input w-full"/>
+
+        <label class="glass-label block">Address Line 2</label>
+        <input name="to_address2" class="glass-input w-full"/>
+
+        <div class="grid md:grid-cols-3 gap-6">
+          <div>
+            <label class="glass-label block">City</label>
+            <input name="to_city" required class="glass-input w-full"/>
+          </div>
+          <div>
+            <label class="glass-label block">State</label>
+            <select name="to_state" required class="glass-input glass-select w-full">
+              <option value="">Select</option>
+            </select>
+          </div>
+          <div>
+            <label class="glass-label block">Zip Code</label>
+            <input name="to_zip" required class="glass-input w-full"/>
+          </div>
+        </div>
+
+        <label class="glass-label block">Country</label>
+        <select name="to_country" class="glass-input glass-select w-full">
+          <option>United States</option>
+        </select>
+
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="save_recipient" class="accent-blue-900"/>
+          Save to address book
+        </label>
+      </div>
+
+      <!-- Sender -->
+      <div class="space-y-6">
+        <h3 class="text-xl font-semibold text-[#2C3E50]">From Sender</h3>
+
+        <label class="glass-label block">Choose from address book</label>
+        <select name="from_address_book" class="glass-input glass-select w-full">
+          <option value="">— none —</option>
+        </select>
+
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <label class="glass-label block">Sender Name</label>
+            <input name="from_name" required class="glass-input w-full"/>
+          </div>
+          <div>
+            <label class="glass-label block">Company / Attention</label>
+            <input name="from_company" class="glass-input w-full"/>
+          </div>
+        </div>
+
+        <label class="glass-label block">Address Line 1</label>
+        <input name="from_address1" required class="glass-input w-full"/>
+
+        <label class="glass-label block">Address Line 2</label>
+        <input name="from_address2" class="glass-input w-full"/>
+
+        <div class="grid md:grid-cols-3 gap-6">
+          <div>
+            <label class="glass-label block">City</label>
+            <input name="from_city" required class="glass-input w-full"/>
+          </div>
+          <div>
+            <label class="glass-label block">State</label>
+            <select name="from_state" required class="glass-input glass-select w-full">
+              <option value="">Select</option>
+            </select>
+          </div>
+          <div>
+            <label class="glass-label block">Zip Code</label>
+            <input name="from_zip" required class="glass-input w-full"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview & Submit -->
+      <div class="space-y-4">
+        <h3 class="text-xl font-semibold text-[#2C3E50]">Letter Preview</h3>
+        <div class="border border-dashed border-gray-400 rounded-xl p-4 text-center italic text-gray-500">
+          Add your merged PDF above to preview here
+        </div>
+        <div class="flex justify-end pt-4">
+          <button type="submit" class="glass-btn glass-btn--primary">
+            Send My Letter
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</main>
+{% endblock %}
+

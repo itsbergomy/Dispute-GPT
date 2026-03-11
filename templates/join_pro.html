@@ -1,0 +1,157 @@
+{% extends "base_header.html" %}
+{% block title %}Choose Your Plan{% endblock %}
+
+{% block content %}
+<main class="flex justify-center items-center min-h-[80vh] px-4">
+  <div class="max-w-5xl w-full text-center">
+    <h2 class="text-4xl font-bold text-[#2C3E50] mb-10">Choose Your Plan</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+      <!-- Pro Plan Card -->
+      <div class="glass-card glass-card--heavy glass-p-lg text-left flex flex-col">
+        <h3 class="text-2xl font-bold text-black-900 mb-4">Pro Plan</h3>
+        <p class="text-4xl font-extrabold text-black-900 mb-6">$20 <span class="text-lg font-normal">/ month</span></p>
+        <ul class="mb-6 space-y-2 text-gray-700">
+          <li>✅ Prompt Packs</li>
+          <li>✅ Advanced Dispute Templates</li>
+          <li>✅ Funding Sequencer</li>
+        </ul>
+        <p class="text-sm text-gray-500 mb-6">For DIY credit repair and funding users.</p>
+        <button id="subscribePro" class="glass-btn glass-btn--primary glass-btn--full mt-auto">
+          Subscribe
+        </button>
+      </div>
+
+      <!-- Business Pro Plan Card -->
+      <div class="glass-card glass-card--heavy glass-p-lg text-left flex flex-col">
+        <h3 class="text-2xl font-bold text-black-900 mb-4">Business Pro Plan</h3>
+        <p class="text-4xl font-extrabold text-black-900 mb-6">$50 <span class="text-lg font-normal">/ month</span></p>
+        <ul class="mb-6 space-y-2 text-gray-700">
+          <li>✅ Everything in Pro</li>
+          <li>✅ Client Dashboard with CRM</li>
+          <li>✅ CFPB Complaint Search</li>
+          <li>✅ Credit Repair & Funding Agents</li>
+        </ul>
+        <p class="text-sm text-gray-500 mb-6">For credit repair and funding companies.</p>
+        <button id="subscribeBusiness" class="glass-btn glass-btn--primary glass-btn--full mt-auto">
+          Subscribe
+        </button>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- Payment Panel -->
+<div id="payment-panel" class="fixed top-0 right-0 w-full md:w-[400px] h-full glass-card glass-card--heavy transform translate-x-full transition-transform duration-300 z-50 p-6 overflow-y-auto">
+  <button onclick="closePanel()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+  <h2 class="text-2xl font-bold text-blue-900 mb-6">Complete Your Upgrade</h2>
+
+  <form id="payment-form">
+    <input id="first-name" placeholder="First Name" required class="glass-input w-full mb-3" />
+    <input id="last-name" placeholder="Last Name" required class="glass-input w-full mb-3" />
+    <input id="email" type="email" placeholder="Email" required class="glass-input w-full mb-4" />
+
+    <label class="glass-label">Card Details</label>
+    <div id="card-element" class="glass-input mb-4"></div>
+    <div id="card-errors" class="text-red-600 text-sm mb-4"></div>
+
+    <label class="glass-label">Billing Address</label>
+    <input id="address1" placeholder="Address Line 1" required class="glass-input w-full mb-3" />
+    <input id="address2" placeholder="Address Line 2 (optional)" class="glass-input w-full mb-3" />
+    <div class="flex gap-3 mb-3">
+      <input id="city" placeholder="City" required class="glass-input flex-1" />
+      <input id="state" placeholder="State" required class="glass-input w-24" />
+      <input id="zip" placeholder="ZIP" required class="glass-input w-32" />
+    </div>
+    <input id="country" placeholder="Country" value="US" required class="glass-input w-full mb-6" />
+
+    <button type="submit" class="glass-btn glass-btn--primary glass-btn--full">
+      Submit Payment
+    </button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+  console.log("Pro button:", document.getElementById("subscribePro"));
+  console.log("Business button:", document.getElementById("subscribeBusiness"));
+
+  document.addEventListener("DOMContentLoaded", function() {
+    // Stripe setup
+    const stripe = Stripe("{{ stripe_test_publishable_key }}");
+    const elements = stripe.elements();
+    const card = elements.create('card');
+    let cardMounted = false;
+    let selectedPlan = null;
+    let selectedAmount = 0;
+
+    // panel control
+    window.openPanel = function(plan, amount) {
+      selectedPlan = plan;
+      selectedAmount = amount;
+      const panel = document.getElementById('payment-panel');
+      panel.classList.remove('translate-x-full');
+      panel.classList.add('translate-x-0');
+      if (!cardMounted) {
+        card.mount('#card-element');
+        cardMounted = true;
+      }
+    };
+
+    window.closePanel = function() {
+      const panel = document.getElementById('payment-panel');
+      panel.classList.remove('translate-x-0');
+      panel.classList.add('translate-x-full');
+    };
+
+    // wire up subscribe buttons
+    document.getElementById('subscribePro').addEventListener('click', () => openPanel('pro', 2000));
+    document.getElementById('subscribeBusiness').addEventListener('click', () => openPanel('business', 5000));
+
+    // payment submission
+    document.getElementById('payment-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: selectedAmount, plan: selectedPlan })
+      });
+      const { clientSecret } = await res.json();
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: card,
+          billing_details: {
+            name: document.getElementById('first-name').value + ' ' + document.getElementById('last-name').value,
+            email: document.getElementById('email').value,
+            address: {
+              line1: document.getElementById('address1').value,
+              line2: document.getElementById('address2').value,
+              city: document.getElementById('city').value,
+              state: document.getElementById('state').value,
+              postal_code: document.getElementById('zip').value,
+              country: document.getElementById('country').value
+            }
+          }
+        }
+      });
+      if (result.error) {
+        document.getElementById('card-errors').textContent = result.error.message;
+      } else if (result.paymentIntent.status === 'succeeded') {
+        await fetch('/update-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: selectedPlan })
+        });
+        window.location.href = '/';
+      }
+    });
+  });
+</script>
+{% endblock %}
+
+
+
+

@@ -1,0 +1,67 @@
+{% extends "base_header.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-10 px-6">
+  <a href="{{ url_for('list_custom_letters') }}"
+     class="glass-btn glass-btn--ghost mb-4 inline-flex items-center gap-1 text-sm">← Back to Letters</a>
+  <div class="glass-card glass-card--heavy glass-p-lg">
+    <h2 class="text-3xl font-bold text-gray-900 mb-6">Edit Custom Letter</h2>
+    <form method="POST" action="{{ url_for('edit_custom_letter', letter_id=letter.id) }}" class="space-y-6">
+      <!-- Template Name -->
+      <div>
+        <label for="name" class="glass-label mb-1">
+          Template Name <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          name="name"
+          id="name"
+          value="{{ letter.name }}"
+          required
+          class="glass-input block w-full"
+        >
+      </div>
+      <!-- Subject -->
+      <div>
+        <label for="subject" class="glass-label mb-1">
+          Email Subject
+        </label>
+        <input
+          type="text"
+          name="subject"
+          id="subject"
+          value="{{ letter.subject }}"
+          class="glass-input block w-full"
+        >
+      </div>
+      <!-- Body -->
+      <div>
+        <label for="body" class="glass-label mb-1">
+          Letter Body <span class="text-red-500">*</span>
+        </label>
+        <textarea
+          name="body"
+          id="body"
+          rows="12"
+          required
+          class="glass-input glass-textarea block w-full resize-none"
+        >{{ letter.body }}</textarea>
+      </div>
+      <!-- Actions -->
+      <div class="flex justify-end space-x-4">
+        <a
+          href="{{ url_for('list_custom_letters') }}"
+          class="glass-btn glass-btn--ghost"
+        >
+          Cancel
+        </a>
+        <button
+          type="submit"
+          class="glass-btn glass-btn--primary"
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

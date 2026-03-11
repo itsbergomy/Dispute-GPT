@@ -1,0 +1,79 @@
+{# templates/define_details.html #}
+{% extends "base_header.html" %}
+
+{% block title %}Define Letter Details{% endblock %}
+
+{% block content %}
+<main class="flex justify-center items-center min-h-[75vh] px-4 py-10">
+  <div class="glass-card glass-card--heavy glass-p text-center max-w-md w-full relative glass-animate-in">
+    <!-- Back Button -->
+    <a href="{{ url_for('select_entity') }}"
+       class="absolute top-4 left-4 glass-btn glass-btn--ghost p-3 rounded-full">
+      <svg xmlns="http://www.w3.org/2000/svg"
+           class="w-5 h-5 text-gray-600"
+           fill="none"
+           viewBox="0 0 24 24"
+           stroke="currentColor">
+        <path stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7" />
+      </svg>
+    </a>
+
+    <!-- Icon -->
+    <div class="text-4xl mb-4 text-blue-900">💬</div>
+
+    <h2 class="text-2xl font-bold text-[#2C3E50] mb-6">
+      Define Letter Details (Dispute Mode)
+    </h2>
+
+    <form method="POST" action="{{ url_for('define_details') }}" class="space-y-6 text-left">
+      {# CORE FIELDS #}
+      {% for name,label in core_fields %}
+      <div>
+        <label for="{{ name }}"
+               class="glass-label block">
+          {{ label }}:
+        </label>
+        <input type="text"
+               id="{{ name }}"
+               name="{{ name }}"
+               placeholder="{{ label }}"
+               required
+               class="glass-input w-full" />
+      </div>
+      {% endfor %}
+
+      {# ACDV‐ONLY FIELDS #}
+      {% if acdv_fields %}
+      <h3 class="mt-4 text-lg font-semibold text-gray-700">
+        ACDV Enforcement Details
+      </h3>
+      {% for name,label in acdv_fields %}
+      <div>
+        <label for="{{ name }}"
+               class="glass-label block">
+          {{ label }}:
+        </label>
+        <input type="text"
+               id="{{ name }}"
+               name="{{ name }}"
+               placeholder="{{ label }}"
+               required
+               class="glass-input w-full" />
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <button type="submit"
+              class="w-full glass-btn glass-btn--primary">
+        Next: Select Prompt Template
+      </button>
+    </form>
+  </div>
+</main>
+{% endblock %}
+
+
+

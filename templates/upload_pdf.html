@@ -1,0 +1,25 @@
+{% extends "base_header.html" %}
+{% block title %}Upload Credit Report{% endblock %}
+{% block content %}
+<main class="flex justify-center items-center min-h-[75vh] px-4 py-10">
+  <div class="glass-card glass-card--heavy glass-p text-center max-w-xl w-full relative glass-animate-in">
+    <a href="{% if current_user.plan == 'business' %}{{ url_for('business.business_dashboard') }}{% else %}{{ url_for('disputes.index') }}{% endif %}"
+       class="absolute top-6 left-6 glass-btn glass-btn--ghost p-3 rounded-full">
+      ←
+    </a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-blue-900 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v16h16V4H4zm4 4l4 4 4-4" />
+    </svg>
+    <h2 class="text-2xl font-bold text-[#2C3E50] mb-2">Upload Credit Report PDF</h2>
+    <p class="text-gray-600 mb-8">Please upload your credit report to begin parsing for negative accounts.</p>
+    <form method="POST" action="{{ url_for('upload_pdf') }}" enctype="multipart/form-data">
+      <label class="inline-block glass-btn glass-btn--primary cursor-pointer">
+        <input type="file" name="pdfFile" accept=".pdf" class="hidden" onchange="this.form.submit()" />
+        Choose PDF
+      </label>
+    </form>
+  </div>
+</main>
+{% endblock %}
+

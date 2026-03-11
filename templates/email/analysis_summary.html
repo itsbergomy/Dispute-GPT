@@ -1,0 +1,17 @@
+<h2>Report Analysis Summary</h2>
+<p><strong>Client:</strong> {{ client.first_name }} {{ client.last_name }}</p>
+<p><strong>Status:</strong> {{ analysis.status_text }}</p>
+<p><strong>FICO Score:</strong> {{ analysis.fico_score }}</p>
+<p><strong>Utilization:</strong> {{ analysis.utilization }}%</p>
+<p><strong>Total Debt:</strong> ${{ analysis.total_debt }}</p>
+<p><strong>Negative Accounts:</strong> {{ analysis.negative_count }}</p>
+
+<h3>Summary</h3>
+<p>{{ analysis.summary_text }}</p>
+
+<h3>Recommendations</h3>
+<ul>
+  {% for rec in analysis.recommendations %}
+    <li>{{ rec }}</li>
+  {% endfor %}
+</ul>

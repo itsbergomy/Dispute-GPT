@@ -2,12 +2,12 @@
 {% block title %}Welcome to DisputeGPT{% endblock %}
 {% block content %}
 <main class="flex justify-center items-center min-h-[75vh] px-4">
-  <div class="bg-white rounded-3xl shadow-xl p-10 text-center max-w-xl w-full border border-gray-100 transition-all backdrop-blur-xl">
+  <div class="glass-card glass-card--heavy glass-p text-center max-w-xl w-full glass-animate-in">
     <h2 class="text-4xl font-extrabold mb-4 text-[#2C3E50]">DisputeGPT</h2>
     <p class="text-gray-600 mb-8 text-lg">Choose how you'd like to proceed crafting your dispute letter.</p>
     <div class="flex flex-col md:flex-row gap-4 justify-center">
       <a href="{{ url_for('upload_pdf') }}"
-         class="flex-1 bg-blue-900 hover:bg-blue-800 text-white font-bold py-4 px-8 rounded-xl flex items-center justify-center text-lg shadow hover:shadow-lg active:scale-95 transition-all">
+         class="flex-1 glass-btn glass-btn--primary glass-btn--lg flex items-center justify-center text-lg">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M4 4v16h16V4H4zm4 4l4 4 4-4" />
@@ -15,7 +15,7 @@
         Dispute Mode (Upload PDF)
       </a>
       <a href="{{ url_for('manual_mode') }}"
-         class="flex-1 bg-blue-900 hover:bg-blue-800 text-white font-bold py-4 px-8 rounded-xl flex items-center justify-center text-lg shadow hover:shadow-lg active:scale-95 transition-all">
+         class="flex-1 glass-btn glass-btn--primary glass-btn--lg flex items-center justify-center text-lg">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M12 20h9" />

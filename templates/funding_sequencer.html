@@ -1,0 +1,12 @@
+{% extends "base_header.html" %}
+{% block title %}Funding Sequencer{% endblock %}
+{% block content %}
+<main class="flex justify-center items-center min-h-[75vh] px-4 py-10">
+  <div class="glass-card glass-card--heavy glass-p-lg text-center max-w-lg w-full relative">
+    <a href="{% if current_user.is_authenticated and current_user.plan == 'business' %}{{ url_for('business_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}"
+       class="absolute top-4 left-4 glass-btn glass-btn--ghost p-3 rounded-full">← Back</a>
+    <h2 class="text-2xl font-bold mb-4">Funding Sequencer</h2>
+    <p class="text-gray-600">This feature is coming soon. Stay tuned!</p>
+  </div>
+</main>
+{% endblock %}

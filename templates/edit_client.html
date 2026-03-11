@@ -1,0 +1,166 @@
+{% extends "base_header.html" %}
+{% block title %}Edit Client{% endblock %}
+
+{% block content %}
+<main class="pt-16 min-h-[calc(100vh-4rem)] px-8 py-10">
+  <div class="max-w-3xl mx-auto">
+    <a href="{{ url_for('view_client', client_id=client.id) }}"
+       class="glass-btn glass-btn--ghost mb-4 inline-flex items-center gap-1 text-sm">← Back to Client</a>
+  </div>
+  <div class="max-w-3xl mx-auto glass-card glass-card--heavy glass-p-lg space-y-8">
+    <h1 class="text-2xl font-bold text-gray-800">Edit Client</h1>
+
+    <form method="POST" action="{{ url_for('edit_client', client_id=client.id) }}" enctype="multipart/form-data" class="space-y-6">
+      <!-- Name + Email -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div>
+          <label for="first_name" class="glass-label">First Name</label>
+          <input type="text"
+                 name="first_name"
+                 id="first_name"
+                 value="{{ client.first_name }}"
+                 required
+                 class="glass-input mt-1 block w-full" />
+        </div>
+        <div>
+          <label for="last_name" class="glass-label">Last Name</label>
+          <input type="text"
+                 name="last_name"
+                 id="last_name"
+                 value="{{ client.last_name }}"
+                 required
+                 class="glass-input mt-1 block w-full" />
+        </div>
+        <div class="sm:col-span-2">
+          <label for="email" class="glass-label">Email</label>
+          <input type="email"
+                 name="email"
+                 id="email"
+                 value="{{ client.email }}"
+                 required
+                 class="glass-input mt-1 block w-full" />
+        </div>
+      </div>
+
+      <!-- Address -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div class="sm:col-span-2">
+          <label for="address_line1" class="glass-label">Address Line 1</label>
+          <input type="text"
+                 name="address_line1"
+                 id="address_line1"
+                 value="{{ client.address_line1 }}"
+                 class="glass-input mt-1 block w-full" />
+        </div>
+        <div class="sm:col-span-2">
+          <label for="address_line2" class="glass-label">Address Line 2</label>
+          <input type="text"
+                 name="address_line2"
+                 id="address_line2"
+                 value="{{ client.address_line2 }}"
+                 class="glass-input mt-1 block w-full" />
+        </div>
+        <div>
+          <label for="city" class="glass-label">City</label>
+          <input type="text"
+                 name="city"
+                 id="city"
+                 value="{{ client.city }}"
+                 class="glass-input mt-1 block w-full" />
+        </div>
+        <div>
+          <label for="state" class="glass-label">State</label>
+          <input type="text"
+                 name="state"
+                 id="state"
+                 value="{{ client.state }}"
+                 class="glass-input mt-1 block w-full" />
+        </div>
+        <div>
+          <label for="zip" class="glass-label">ZIP Code</label>
+          <input type="text"
+                 name="zip"
+                 id="zip"
+                 value="{{ client.zip }}"
+                 class="glass-input mt-1 block w-full" />
+        </div>
+      </div>
+
+      <!-- Round Status + Notes -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div>
+          <label for="round_status" class="glass-label">Round Status</label>
+          <select name="round_status"
+                  id="round_status"
+                  class="glass-select mt-1 block w-full">
+            {% for status in ['Not Started','Round 1','Round 2','Round 3','Complete'] %}
+            <option value="{{ status }}"
+                    {% if client.round_status == status %}selected{% endif %}>
+              {{ status }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="notes" class="glass-label">Notes</label>
+          <textarea name="notes"
+                    id="notes"
+                    rows="4"
+                    class="glass-input glass-textarea mt-1 block w-full"
+          >{{ client.notes }}</textarea>
+        </div>
+      </div>
+
+      <!-- File Uploads -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div>
+          <label for="pdf_file" class="glass-label">Credit Report (PDF)</label>
+          <input type="file"
+                 name="pdf_file"
+                 id="pdf_file"
+                 accept=".pdf"
+                 class="glass-input mt-1 block w-full" />
+        </div>
+        <div>
+          <label for="id_file" class="glass-label">ID Document (PDF/IMG)</label>
+          <input type="file"
+                 name="id_file"
+                 id="id_file"
+                 accept=".pdf,.jpg,.jpeg,.png"
+                 class="glass-input mt-1 block w-full" />
+        </div>
+        <div>
+          <label for="ssn_file" class="glass-label">SSN Card (PDF/IMG)</label>
+          <input type="file"
+                 name="ssn_file"
+                 id="ssn_file"
+                 accept=".pdf,.jpg,.jpeg,.png"
+                 class="glass-input mt-1 block w-full" />
+        </div>
+        <div>
+          <label for="utility_file" class="glass-label">Utility Bill (PDF/IMG)</label>
+          <input type="file"
+                 name="utility_file"
+                 id="utility_file"
+                 accept=".pdf,.jpg,.jpeg,.png"
+                 class="glass-input mt-1 block w-full" />
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div class="text-right">
+        <button type="submit"
+                class="glass-btn glass-btn--primary inline-flex items-center">
+          <!-- save icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M5 13l4 4L19 7" />
+          </svg>
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
+{% endblock %}
+

@@ -1,0 +1,119 @@
+{% extends "base_header.html" %}
+{% block title %}Credit Analysis Complete{% endblock %}
+
+{% block content %}
+<main class="min-h-[100vh] px-4 py-12">
+  <div class="max-w-5xl mx-auto space-y-10">
+
+    <a href="{% if current_user.is_authenticated and current_user.plan == 'business' %}{{ url_for('business_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}"
+       class="glass-btn glass-btn--ghost inline-flex items-center gap-1 text-sm">← Back</a>
+
+    <!-- Header -->
+    <div class="glass-card glass-card--heavy glass-p-lg text-center">
+      <h1 class="text-3xl font-extrabold text-blue-900">Credit Analysis Complete</h1>
+      <p class="text-gray-600 mt-2">AI‐Powered Analysis for {{ user_name }}</p>
+    </div>
+
+    <!-- Metrics Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="glass-metric glass-metric--blue glass-p text-center">
+        <h3 class="glass-metric__label">FICO Score</h3>
+        <p class="glass-metric__value">{{ fico_score }}</p>
+      </div>
+      <div class="glass-metric glass-metric--red glass-p text-center">
+        <h3 class="glass-metric__label">Utilization</h3>
+        <p class="glass-metric__value">{{ utilization_pct }}%</p>
+      </div>
+      <div class="glass-metric glass-metric--yellow glass-p text-center">
+        <h3 class="glass-metric__label">Collections</h3>
+        <p class="glass-metric__value">{{ num_collections }}</p>
+      </div>
+      <div class="glass-metric glass-metric--purple glass-p text-center">
+        <h3 class="glass-metric__label">Total Debt</h3>
+        <p class="glass-metric__value">${{ total_debt }}</p>
+      </div>
+      <div class="glass-metric glass-metric--pink glass-p text-center">
+        <h3 class="glass-metric__label">Negative Accounts</h3>
+        <p class="glass-metric__value">{{ negative_count }}</p>
+      </div>
+      <div class="glass-metric glass-metric--green glass-p text-center">
+        <h3 class="glass-metric__label">Avg. Credit Age</h3>
+        <p class="glass-metric__value text-2xl">
+          {{ avg_credit_age }}
+          <span class="block text-xs text-gray-600">Oldest: {{ oldest_account_age }}</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Status Badge -->
+    <div class="text-center">
+      <span class="glass-badge--danger">
+        Status: {{ status_text }}
+      </span>
+    </div>
+
+    <!-- Summary -->
+    <div class="glass-card glass-card--heavy glass-p-lg">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">📝 Summary</h2>
+      <p class="text-gray-700 leading-relaxed">{{ summary_text }}</p>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="glass-card glass-card--heavy glass-p-lg">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">✅ Recommendations</h2>
+      <ul class="list-disc list-inside space-y-2 text-gray-700">
+        {% for rec in recommendations %}
+          <li>{{ rec }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+
+    <!-- Inaccurate Reporting -->
+    {% if inaccurate_accounts %}
+    <div class="mt-8 glass-card glass-card--heavy glass-p">
+      <h3 class="text-2xl font-bold text-blue-900 mb-4">⚠️ Inaccurate Reporting Detected</h3>
+      <ul class="list-inside space-y-3 text-gray-700">
+        {% for acct in inaccurate_accounts %}
+        <li>
+          <strong>{{ acct.account_name }}</strong>
+          ({{ acct.account_number }}):
+          {{ acct.issue }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <!-- Incomplete Information -->
+    {% if incomplete_accounts %}
+    <div class="mt-8 glass-card glass-card--heavy glass-p">
+      <h3 class="text-2xl font-bold text-blue-900 mb-4">⚠️ Incomplete Account Data</h3>
+      <ul class="list-inside space-y-3 text-gray-700">
+        {% for acct in incomplete_accounts %}
+        <li>
+          <strong>{{ acct.account_name }}</strong>
+          ({{ acct.account_number }}):
+          Missing {{ acct.missing_fields | join(', ') }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <div class="text-center mt-8">
+      {% if status_text == 'Needs Repair' %}
+        <a href="{{ url_for('select_account') }}"
+           class="glass-btn glass-btn--primary glass-btn--lg">
+          Start Dispute
+        </a>
+      {% elif status_text == 'Funding Ready' %}
+        <a href="{{ url_for('funding_sequencer') }}"
+           class="glass-btn glass-btn--primary glass-btn--lg">
+          Start Funding Sequence
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</main>
+{% endblock %}

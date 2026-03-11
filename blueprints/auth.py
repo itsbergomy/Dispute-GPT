@@ -130,3 +130,16 @@ def update_plan():
     db.session.commit()
 
     return jsonify({"status": "success"})
+
+
+@auth_bp.route('/dev/switch-plan/<plan>')
+@login_required
+def dev_switch_plan(plan):
+    """Dev-only: quickly toggle between free/pro/business plans."""
+    if plan not in ('free', 'pro', 'business'):
+        flash('Invalid plan.', 'error')
+        return redirect(url_for('disputes.index'))
+    current_user.plan = plan
+    db.session.commit()
+    flash(f'Switched to {plan} plan.', 'success')
+    return redirect(request.referrer or url_for('disputes.index'))

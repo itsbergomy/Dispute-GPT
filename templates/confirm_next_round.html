@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Start Next Round?</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/css/liquid-glass.css">
+</head>
+<body class="flex justify-center items-center h-screen">
+  <div class="glass-card glass-card--heavy glass-p-lg text-center max-w-[500px] w-full">
+    <h2 class="text-2xl font-bold mb-4">Round {{ current_round }} complete!</h2>
+    <p class="text-gray-600 mb-6">Do you want to start Round {{ current_round + 1 }}?</p>
+    <form method="POST" class="flex justify-center gap-4">
+      <button type="submit" name="confirm_round" value="yes"
+              class="glass-btn glass-btn--primary glass-btn--lg">
+        Yes, Start Round {{ current_round + 1 }}
+      </button>
+      <button type="submit" name="confirm_round" value="no"
+              class="glass-btn glass-btn--secondary glass-btn--lg">
+        No, take me back
+      </button>
+    </form>
+  </div>
+</body>
+</html>

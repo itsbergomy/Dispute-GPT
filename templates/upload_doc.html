@@ -1,0 +1,49 @@
+{% extends "base_header.html" %}
+{% block title %}Upload Correspondence{% endblock %}
+
+{% block content %}
+<main class="flex justify-center items-center min-h-[80vh] px-4 py-10">
+  <div class="glass-card glass-card--heavy glass-p-lg w-full max-w-md">
+    <h2 class="text-2xl font-bold text-blue-900 mb-6">Upload Correspondence</h2>
+
+    <form action="{{ url_for('upload_doc') }}"
+          method="POST"
+          enctype="multipart/form-data"
+          class="space-y-6">
+
+      <div>
+        <label for="file" class="glass-label">
+          Choose File
+        </label>
+        <input
+          type="file"
+          name="file"
+          id="file"
+          required
+          class="glass-input mt-1 block w-full"
+        />
+      </div>
+
+      <div>
+        <label for="description" class="glass-label">
+          Description (optional)
+        </label>
+        <textarea
+          name="description"
+          id="description"
+          rows="3"
+          placeholder="e.g. Response from TransUnion on 2025-07-10"
+          class="glass-input glass-textarea mt-1 w-full"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        class="glass-btn glass-btn--primary glass-btn--full"
+      >
+        Upload Document
+      </button>
+    </form>
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,79 @@
+{# Dispute folder drawer fragment — loaded via AJAX #}
+<nav class="px-4 pt-3">
+  <div class="glass-tabs" id="drawerTabs">
+    <button data-tab="logs" class="glass-tab glass-tab--active">Daily Log</button>
+    <button data-tab="letters" class="glass-tab">Mailed Letters</button>
+    <button data-tab="docs" class="glass-tab">Correspondence</button>
+  </div>
+</nav>
+
+<div class="p-5 overflow-y-auto" style="height:calc(100% - 120px);">
+
+  <!-- Daily Log -->
+  <div id="dp-logs" class="drawer-panel">
+    {% for entry in logs %}
+      <div class="mb-3 glass-card glass-card--light rounded-xl p-3">
+        <div class="text-xs" style="color:var(--text-tertiary);">{{ entry.timestamp }}</div>
+        <p class="mt-1 text-sm">{{ entry.description }}</p>
+      </div>
+    {% else %}
+      <p class="text-sm" style="color:var(--text-tertiary);">No log entries yet.</p>
+    {% endfor %}
+    <form class="mt-4 drawer-form" data-url="{{ url_for('disputes.add_log') }}">
+      <input name="title" required class="glass-input mb-2" placeholder="Title" />
+      <textarea name="content" required class="glass-input glass-textarea" placeholder="Describe your activity..."></textarea>
+      <button type="submit" class="mt-2 glass-btn glass-btn--primary w-full">Add Log Entry</button>
+    </form>
+  </div>
+
+  <!-- Mailed Letters -->
+  <div id="dp-letters" class="drawer-panel hidden">
+    {% for L in letters %}
+      <div class="mb-3 glass-card glass-card--light rounded-xl p-3">
+        <div class="flex items-center justify-between">
+          <div class="min-w-0 flex-1">
+            <div class="text-xs" style="color:var(--text-tertiary);">{{ L.created_at }}</div>
+            <p class="mt-1 text-sm truncate">{{ L.letter_text[:80] }}{% if L.letter_text|length > 80 %}...{% endif %}</p>
+          </div>
+          {% if L.pdf_url %}
+          <a href="{{ L.pdf_url }}" target="_blank" class="glass-btn glass-btn--primary glass-btn--pill text-xs px-3 py-1 ml-3 shrink-0">View PDF</a>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <p class="text-sm" style="color:var(--text-tertiary);">No mailed letters recorded.</p>
+    {% endfor %}
+    <form class="mt-4 drawer-form" data-url="{{ url_for('disputes.add_letter') }}">
+      <textarea name="letter_text" required class="glass-input glass-textarea" placeholder="Paste letter text..."></textarea>
+      <button type="submit" class="mt-2 glass-btn glass-btn--primary w-full">Record Mailed Letter</button>
+    </form>
+  </div>
+
+  <!-- Correspondence / Uploads -->
+  <div id="dp-docs" class="drawer-panel hidden">
+    {% for D in docs %}
+      <div class="mb-3 glass-card glass-card--light rounded-xl p-3">
+        <div class="flex items-center justify-between">
+          <div class="min-w-0 flex-1">
+            <div class="text-xs" style="color:var(--text-tertiary);">{{ D.uploaded_at }}</div>
+            <div class="text-sm font-medium mt-0.5 truncate">{{ D.filename }}</div>
+          </div>
+          <div class="flex items-center gap-2 ml-3 shrink-0">
+            <a href="{{ url_for('disputes.serve_upload', filename=D.filename) }}" target="_blank" class="glass-btn glass-btn--primary glass-btn--pill text-xs px-3 py-1">View</a>
+            <button class="drawer-delete-btn text-xs px-3 py-1 rounded-full font-semibold transition"
+                    style="background:rgba(239,68,68,0.15);color:#ef4444;"
+                    data-url="{{ url_for('disputes.delete_doc', doc_id=D.id) }}">Delete</button>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <p class="text-sm" style="color:var(--text-tertiary);">No documents uploaded.</p>
+    {% endfor %}
+    <form class="mt-4 drawer-upload-form" data-url="{{ url_for('disputes.upload_doc') }}" enctype="multipart/form-data">
+      <label class="glass-label mb-1 text-xs">Upload a document</label>
+      <input type="file" name="file" required class="glass-input mb-2" />
+      <button type="submit" class="glass-btn glass-btn--primary w-full">Upload</button>
+    </form>
+  </div>
+
+</div>

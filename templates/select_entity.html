@@ -1,0 +1,36 @@
+{% extends "base_header.html" %}
+{% block title %}Select Entity{% endblock %}
+{% block content %}
+<main class="flex justify-center items-center min-h-[75vh] px-4 py-10">
+  <div class="glass-card glass-card--heavy glass-p max-w-md w-full relative text-center glass-animate-in">
+    
+    <!-- Back Button -->
+    <a href="/select-account" class="absolute top-4 left-4 glass-btn glass-btn--ghost p-3 rounded-full">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+    </a>
+
+    <!-- Icon -->
+    <div class="text-4xl mb-6 text-blue-900">💾</div>
+
+    <h2 class="text-2xl font-bold text-[#2C3E50] mb-8">Select Entity for Dispute</h2>
+
+    <form method="POST" action="/handle-entity" class="space-y-4">
+      <button type="submit" name="entity" value="Experian"
+              class="w-full glass-btn glass-btn--secondary">
+        Experian
+      </button>
+      <button type="submit" name="entity" value="TransUnion"
+              class="w-full glass-btn glass-btn--secondary">
+        TransUnion
+      </button>
+      <button type="submit" name="entity" value="Equifax"
+              class="w-full glass-btn glass-btn--secondary">
+        Equifax
+      </button>
+    </form>
+  </div>
+</main>
+{% endblock %}
+

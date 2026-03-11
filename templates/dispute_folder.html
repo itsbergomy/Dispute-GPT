@@ -1,0 +1,92 @@
+{% extends "base_header.html" %}
+{% block title %}Dispute Folder{% endblock %}
+
+{% block content %}
+<main class="flex justify-center px-4 py-12 min-h-screen">
+  <div class="max-w-2xl w-full">
+
+    <a href="{% if current_user.plan == 'business' %}{{ url_for('business.business_dashboard') }}{% else %}{{ url_for('disputes.index') }}{% endif %}"
+       class="inline-flex items-center gap-1 text-sm font-medium mb-4" style="color:var(--accent);">
+      &larr; Back
+    </a>
+
+    <h1 class="text-3xl font-extrabold mb-6">Your Dispute Folder</h1>
+
+    <!-- Tabs -->
+    <div class="glass-tabs mb-6">
+      <button data-tab="logs" class="glass-tab glass-tab--active">Daily Log</button>
+      <button data-tab="letters" class="glass-tab">Mailed Letters</button>
+      <button data-tab="docs" class="glass-tab">Correspondence</button>
+    </div>
+
+    <!-- Daily Log -->
+    <div id="panel-logs" class="tab-panel">
+      {% for entry in logs %}
+        <div class="mb-3 glass-card glass-card--light rounded-xl p-4">
+          <div class="text-xs" style="color:var(--text-tertiary);">{{ entry.timestamp }}</div>
+          <p class="mt-1 text-sm">{{ entry.description }}</p>
+        </div>
+      {% else %}
+        <p class="text-sm" style="color:var(--text-tertiary);">No log entries yet.</p>
+      {% endfor %}
+      <form action="{{ url_for('disputes.add_log') }}" method="POST" class="mt-4 glass-card glass-card--light rounded-xl p-4">
+        <input name="title" required class="glass-input mb-2" placeholder="Title" />
+        <textarea name="content" required class="glass-input glass-textarea" placeholder="Describe your activity..."></textarea>
+        <button type="submit" class="mt-2 glass-btn glass-btn--primary">Add Log Entry</button>
+      </form>
+    </div>
+
+    <!-- Mailed Letters -->
+    <div id="panel-letters" class="tab-panel hidden">
+      {% for L in letters %}
+        <div class="mb-3 glass-card glass-card--light rounded-xl p-4">
+          <div class="text-xs" style="color:var(--text-tertiary);">{{ L.created_at }}</div>
+          <p class="mt-1 text-sm">{{ L.letter_text[:120] }}...</p>
+        </div>
+      {% else %}
+        <p class="text-sm" style="color:var(--text-tertiary);">No mailed letters recorded.</p>
+      {% endfor %}
+      <form action="{{ url_for('disputes.add_letter') }}" method="POST" class="mt-4 glass-card glass-card--light rounded-xl p-4">
+        <textarea name="letter_text" required class="glass-input glass-textarea" placeholder="Paste letter text..."></textarea>
+        <button type="submit" class="mt-2 glass-btn glass-btn--primary">Record Mailed Letter</button>
+      </form>
+    </div>
+
+    <!-- Correspondence / Uploads -->
+    <div id="panel-docs" class="tab-panel hidden">
+      {% for D in docs %}
+        <div class="mb-3 glass-card glass-card--light rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-xs" style="color:var(--text-tertiary);">{{ D.uploaded_at }} &bull; {{ D.filename }}</div>
+          </div>
+          <a href="{{ D.file_url }}" class="glass-btn glass-btn--primary glass-btn--pill text-xs px-3 py-1">View</a>
+        </div>
+      {% else %}
+        <p class="text-sm" style="color:var(--text-tertiary);">No documents uploaded.</p>
+      {% endfor %}
+      <form action="{{ url_for('disputes.upload_doc') }}" method="POST" enctype="multipart/form-data"
+            class="mt-4 glass-card glass-card--light rounded-xl p-4">
+        <label class="glass-label mb-2">Upload a document</label>
+        <input type="file" name="file" required class="glass-input mb-2" />
+        <button type="submit" class="glass-btn glass-btn--primary">Upload</button>
+      </form>
+    </div>
+
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.querySelectorAll('.glass-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.closest('.glass-tabs').querySelectorAll('.glass-tab').forEach(b => b.classList.remove('glass-tab--active'));
+    btn.classList.add('glass-tab--active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+    const name = btn.dataset.tab;
+    if (name) document.getElementById('panel-' + name)?.classList.remove('hidden');
+  });
+});
+</script>
+{% endblock %}

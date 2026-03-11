@@ -26,6 +26,15 @@ from config import mail
 business_bp = Blueprint('business', __name__)
 
 
+@business_bp.before_request
+@login_required
+def require_business_plan():
+    """Gate all business routes to business-plan users only."""
+    if current_user.plan != 'business':
+        flash('Business plan required.', 'error')
+        return redirect(url_for('disputes.index'))
+
+
 @business_bp.route('/business-dashboard')
 @login_required
 def business_dashboard():
@@ -51,17 +60,23 @@ def business_dashboard():
         enabled=True
     ).count()
 
-    stats = {
-        'total_clients': total_clients,
-        'workflows_enabled': total_workflows_enabled
-    }
-
     # Get pipeline statuses for each client
     pipelines = DisputePipeline.query.filter_by(user_id=current_user.id).order_by(
         DisputePipeline.created_at.desc()
     ).all()
 
-    letters = []
+    active_pipelines = sum(1 for p in pipelines if p.state not in ('completed', 'failed'))
+    letters_sent = ClientDisputeLetter.query.join(Client).filter(
+        Client.business_user_id == current_user.id
+    ).count()
+
+    stats = {
+        'total_clients': total_clients,
+        'active_pipelines': active_pipelines,
+        'letters_sent': letters_sent,
+        'workflows_enabled': total_workflows_enabled,
+    }
+
     correspondence = []
     active_tab = request.args.get('tab', 'clients')
 
@@ -70,7 +85,6 @@ def business_dashboard():
                            selected_client=selected_client,
                            workflow_enabled=workflow_enabled,
                            stats=stats,
-                           letters=letters,
                            correspondence=correspondence,
                            active_tab=active_tab,
                            pipelines=pipelines)
@@ -84,22 +98,50 @@ def create_client():
     email = request.form.get('email')
 
     if not all([first_name, last_name, email]):
-        flash("All fields are required.")
+        flash("First name, last name, and email are required.", "error")
         return redirect(url_for("business.business_dashboard"))
 
     client = Client(
         first_name=first_name,
         last_name=last_name,
         email=email,
-        business_user_id=current_user.id
+        business_user_id=current_user.id,
+        address_line1=request.form.get('address_line1', '').strip() or None,
+        address_line2=request.form.get('address_line2', '').strip() or None,
+        city=request.form.get('city', '').strip() or None,
+        state=request.form.get('state', '').strip() or None,
+        zip_code=request.form.get('zip_code', '').strip() or None,
+        notes=request.form.get('notes', '').strip() or None,
     )
     db.session.add(client)
+    db.session.commit()
+
+    # Save uploaded files
+    upload_dir = current_app.config['UPLOAD_FOLDER']
+    client_dir = os.path.join(upload_dir, str(client.id))
+    os.makedirs(client_dir, exist_ok=True)
+
+    file_fields = {
+        'pdf_file': 'pdf_filename',
+        'id_file': 'id_filename',
+        'ssn_file': 'ssn_filename',
+        'utility_file': 'utility_filename',
+    }
+    for form_key, model_attr in file_fields.items():
+        f = request.files.get(form_key)
+        if f and f.filename:
+            safe_name = secure_filename(f.filename)
+            save_path = os.path.join(client_dir, safe_name)
+            f.save(save_path)
+            setattr(client, model_attr, safe_name)
+
     db.session.commit()
 
     thread = MessageThread(client_id=client.id)
     db.session.add(thread)
     db.session.commit()
 
+    flash(f"Client {first_name} {last_name} created.", "success")
     return redirect(url_for("business.business_dashboard"))
 
 

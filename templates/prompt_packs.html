@@ -1,0 +1,73 @@
+{% extends "base_header.html" %}
+{% block title %}Choose Prompt Pack{% endblock %}
+
+{% block content %}
+<main class="flex justify-center items-center min-h-[75vh] px-4 py-10">
+  <div class="glass-card glass-card--heavy glass-p max-w-2xl w-full text-center relative glass-animate-in">
+    <a href="{% if current_user.is_authenticated and current_user.plan == 'business' %}{{ url_for('business_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}"
+       class="absolute top-4 left-4 glass-btn glass-btn--ghost p-3 rounded-full">← Back</a>
+    <h2 class="text-2xl font-bold text-[#2C3E50] mb-4">Select a Prompt Pack</h2>
+    <p class="text-gray-600 mb-6">Pick the set of templates that best fits your needs.</p>
+
+    <div class="relative glass-card glass-card--light glass-p-sm mb-6">
+      <button id="prevPack"
+              class="absolute left-4 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow">‹</button>
+
+      <div id="packDisplay"
+           class="min-h-[140px] flex flex-col items-center justify-center px-8 space-y-4">
+        <!-- JS will inject: image, name, description -->
+      </div>
+
+      <button id="nextPack"
+              class="absolute right-4 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow">›</button>
+    </div>
+
+    <form method="POST" action="{{ url_for('prompt_packs') }}">
+      <input type="hidden" name="pack_key" id="packKey">
+      <button type="submit"
+              class="w-full glass-btn glass-btn--primary">
+        Activate Pack
+      </button>
+    </form>
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// pull in your list from Flask (make sure your Python uses 'description', not 'Description')
+const promptPacks = {{ packs|tojson }};
+
+let pi = 0;
+const disp  = document.getElementById('packDisplay');
+const keyIn = document.getElementById('packKey');
+
+function showPack() {
+  const p = promptPacks[pi];
+  const imgSrc = `/static/packs/${p.key}.svg`;
+
+  disp.innerHTML = `
+    <img src="${imgSrc}" alt="${p.name} icon"
+         onerror="this.style.display='none';"
+         class="w-16 h-16 mx-auto mb-2" />
+    <h3 class="text-xl font-semibold text-[#2C3E50]">${p.name}</h3>
+    <p class="mt-1 text-gray-700">${p.description}</p>
+  `;
+
+  keyIn.value = p.key;
+}
+
+document.getElementById('prevPack').onclick = () => {
+  pi = (pi - 1 + promptPacks.length) % promptPacks.length;
+  showPack();
+};
+document.getElementById('nextPack').onclick = () => {
+  pi = (pi + 1) % promptPacks.length;
+  showPack();
+};
+
+window.addEventListener('DOMContentLoaded', showPack);
+</script>
+{% endblock %}
+
+

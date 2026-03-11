@@ -8,7 +8,7 @@ import json
 from datetime import datetime, timedelta
 from flask import (
     Blueprint, request, jsonify, render_template, flash,
-    redirect, url_for, session, send_file, current_app
+    abort, redirect, url_for, session, send_file, send_from_directory, current_app
 )
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
@@ -45,10 +45,13 @@ def allowed_file(filename):
 
 @disputes_bp.route('/')
 def index():
+    if current_user.is_authenticated and current_user.plan == 'business':
+        return redirect(url_for('business.business_dashboard'))
     return render_template('index.html')
 
 
 @disputes_bp.route('/upload-pdf', methods=['GET', 'POST'])
+@login_required
 def upload_pdf():
     if request.method == 'POST':
         if current_user.is_authenticated:
@@ -72,7 +75,11 @@ def upload_pdf():
             pdf_hash = compute_pdf_hash(filepath)
             session['pdf_hash'] = pdf_hash
 
-            negative_items = extract_negative_items_from_pdf(filepath)
+            try:
+                negative_items = extract_negative_items_from_pdf(filepath)
+            except Exception as e:
+                flash(f"Could not parse PDF: {e}", "error")
+                return redirect(url_for('disputes.upload_pdf'))
             session['negative_items'] = negative_items
 
             existing_round = DisputeRound.query.filter_by(
@@ -146,6 +153,9 @@ def confirm_account():
 @disputes_bp.route('/confirm-account/save', methods=['POST'])
 def save_confirmed_account():
     account_number = request.form.get('account_number')
+    session['account_name'] = request.form.get('account_name', '')
+    session['account_number'] = account_number or ''
+    session['status'] = request.form.get('status', '')
 
     pdf_hash = session.get('pdf_hash')
     if not pdf_hash:
@@ -255,6 +265,17 @@ def prompt_packs():
     return render_template('prompt_packs.html', packs=PACK_INFO)
 
 
+@disputes_bp.route('/set-pack/<pack>')
+@login_required
+def set_prompt_pack(pack):
+    """Quick-set prompt pack from nav toggle."""
+    valid = {'default', 'arbitration', 'consumer_law', 'ACDV_response'}
+    if pack in valid:
+        session['prompt_pack'] = pack
+        flash(f'Switched to {pack.replace("_"," ")} pack.', 'success')
+    return redirect(request.referrer or url_for('disputes.index'))
+
+
 @disputes_bp.route('/generate-letter-screen', methods=['POST'])
 def generate_letter_screen():
     template = request.form.get('template_text')
@@ -266,12 +287,12 @@ def generate_letter_screen():
 def generate_process():
     template = session['selected_template']
     data = {
-        "action": session['action'],
-        "issue": session['issue'],
-        "entity": session['selected_entity'],
-        "account_name": session['account_name'],
-        "account_number": session['account_number'],
-        "marks": session['status']
+        "action": session.get('action', ''),
+        "issue": session.get('issue', ''),
+        "entity": session.get('selected_entity', ''),
+        "account_name": session.get('account_name', ''),
+        "account_number": session.get('account_number', ''),
+        "marks": session.get('status', '')
     }
     prompt = template.format(**data)
     letter_text = generate_letter(prompt)
@@ -402,6 +423,26 @@ def convert_pdf():
     # Merge into DisputePackage
     final_pdf = merge_dispute_package(pdf_paths, os.path.join(upload_folder, 'DisputePackage.pdf'))
 
+    # Auto-save letter backup to Mailed Letters
+    if current_user.is_authenticated:
+        import shutil
+        from datetime import datetime as dt
+        timestamp = dt.utcnow().strftime('%Y%m%d_%H%M%S')
+        backup_name = f'DisputePackage_{timestamp}.pdf'
+        user_folder = os.path.join(upload_folder, str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+        backup_path = os.path.join(user_folder, backup_name)
+        shutil.copy2(final_pdf, backup_path)
+
+        pdf_serve_url = url_for('disputes.serve_upload', filename=backup_name)
+        mailed = MailedLetter(
+            user_id=current_user.id,
+            letter_text=letter_text,
+            pdf_url=pdf_serve_url
+        )
+        db.session.add(mailed)
+        db.session.commit()
+
     return send_file(
         final_pdf,
         as_attachment=True,
@@ -421,6 +462,16 @@ def dispute_folder():
     return render_template('dispute_folder.html', logs=logs, letters=letters, docs=docs)
 
 
+@disputes_bp.route('/api/dispute-folder-data')
+@login_required
+def dispute_folder_data():
+    """Return dispute folder contents as an HTML fragment for the AJAX drawer."""
+    logs = DailyLogEntry.query.filter_by(user_id=current_user.id).order_by(DailyLogEntry.timestamp.desc()).all()
+    letters = MailedLetter.query.filter_by(user_id=current_user.id).order_by(MailedLetter.created_at.desc()).all()
+    docs = Correspondence.query.filter_by(user_id=current_user.id).order_by(Correspondence.uploaded_at.desc()).all()
+    return render_template('_dispute_folder_fragment.html', logs=logs, letters=letters, docs=docs)
+
+
 @disputes_bp.route('/add-log', methods=['GET', 'POST'])
 @login_required
 def add_log():
@@ -436,7 +487,7 @@ def add_log():
         db.session.commit()
 
         flash('Logged your entry!', 'success')
-        return redirect(url_for('disputes.dispute_folder'))
+        return redirect(request.referrer or url_for('disputes.dispute_folder'))
 
     return render_template('add_log.html')
 
@@ -454,7 +505,7 @@ def add_letter():
         db.session.add(new)
         db.session.commit()
         flash("Mailed letter recorded.", "success")
-        return redirect(url_for('disputes.dispute_folder'))
+        return redirect(request.referrer or url_for('disputes.dispute_folder'))
 
     return render_template('add_letter.html')
 
@@ -469,25 +520,71 @@ def upload_doc():
             return redirect(url_for('disputes.upload_doc'))
 
         filename = secure_filename(file.filename)
-        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
-        os.makedirs(upload_folder, exist_ok=True)
-        filepath = os.path.join(upload_folder, filename)
+        user_folder = os.path.join(
+            current_app.config.get('UPLOAD_FOLDER', 'uploads'),
+            str(current_user.id)
+        )
+        os.makedirs(user_folder, exist_ok=True)
+        filepath = os.path.join(user_folder, filename)
         file.save(filepath)
+
+        serve_url = url_for('disputes.serve_upload', filename=filename)
 
         doc = Correspondence(
             user_id=current_user.id,
             client_id=0,
             filename=filename,
-            file_url=filepath,
+            file_url=serve_url,
             description=request.form.get('description', '').strip()
         )
         db.session.add(doc)
         db.session.commit()
 
         flash("Document uploaded.", "success")
-        return redirect(url_for('disputes.dispute_folder'))
+        # Stay on current page if uploaded from the drawer, otherwise go to folder
+        return redirect(request.referrer or url_for('disputes.dispute_folder'))
 
     return render_template('upload_doc.html')
+
+
+@disputes_bp.route('/uploads/<filename>')
+@login_required
+def serve_upload(filename):
+    """Serve uploaded documents — checks per-user folder first, then root uploads."""
+    upload_base = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+    user_folder = os.path.join(upload_base, str(current_user.id))
+
+    # Check per-user folder first (new uploads)
+    if os.path.exists(os.path.join(user_folder, filename)):
+        return send_from_directory(os.path.abspath(user_folder), filename)
+
+    # Fall back to root uploads folder (old uploads)
+    if os.path.exists(os.path.join(upload_base, filename)):
+        return send_from_directory(os.path.abspath(upload_base), filename)
+
+    abort(404)
+
+
+@disputes_bp.route('/delete-doc/<int:doc_id>', methods=['POST'])
+@login_required
+def delete_doc(doc_id):
+    """Delete an uploaded document."""
+    doc = Correspondence.query.get_or_404(doc_id)
+    if doc.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    # Delete file from disk
+    user_folder = os.path.join(
+        current_app.config.get('UPLOAD_FOLDER', 'uploads'),
+        str(current_user.id)
+    )
+    filepath = os.path.join(user_folder, doc.filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+
+    db.session.delete(doc)
+    db.session.commit()
+    return jsonify({"status": "ok"})
 
 
 # ─── Report Analyzer ───

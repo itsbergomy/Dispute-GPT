@@ -1,0 +1,61 @@
+{% extends "base_header.html" %}
+
+{% block title %}Final Letter Review{% endblock %}
+
+{% block content %}
+<main class="flex justify-center items-center min-h-[80vh] px-4">
+  <div class="glass-card glass-card--heavy glass-p w-full max-w-4xl glass-animate-in">
+    <a href="{% if current_user.is_authenticated and current_user.plan == 'business' %}{{ url_for('business.business_dashboard') }}{% else %}{{ url_for('disputes.index') }}{% endif %}"
+       class="inline-block mb-4 glass-btn glass-btn--ghost p-3 rounded-full">← Back</a>
+    <h2 class="text-3xl font-bold text-center mb-8">Final Letter Review</h2>
+    
+    <form action="/convert-pdf" method="POST" enctype="multipart/form-data" class="space-y-6">
+      <div>
+        <textarea name="letter" class="glass-input glass-textarea w-full h-52 font-mono text-base">{{ letter }}</textarea>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <div>
+          <label for="id_file" class="glass-label block mb-2">Upload ID:</label>
+          <input type="file" name="id_file" id="id_file" required class="glass-input w-full" />
+        </div>
+
+        <div>
+          <label for="ssn_file" class="glass-label block mb-2">Upload SSN Card:</label>
+          <input type="file" name="ssn_file" id="ssn_file" required class="glass-input w-full" />
+        </div>
+
+        <div>
+          <label for="utility_file" class="glass-label block mb-2">Upload Utility Bill:</label>
+          <input type="file" name="utility_file" id="utility_file" required class="glass-input w-full" />
+        </div>
+      </div>
+
+      <div class="flex flex-wrap justify-between gap-4 pt-6">
+        {% if session.get('manual_mode') %}
+          <a href="/define-details-manual" class="glass-btn glass-btn--secondary">
+            ← Return to Define Details
+          </a>
+        {% else %}
+          <a href="{{ url_for('select_account') }}" class="glass-btn glass-btn--secondary">
+            ← Return to Negative Accounts
+          </a>
+        {% endif %}
+
+        <a href="/" class="glass-btn glass-btn--ghost">
+          Return to Home
+        </a>
+
+        <button type="submit" class="glass-btn glass-btn--primary">
+          Convert to PDF
+        </button>
+
+        <a href="/mail-letter" class="glass-btn glass-btn--secondary">
+          Go to Mail
+        </a>
+      </div>
+    </form>
+  </div>
+</main>
+{% endblock %}
+

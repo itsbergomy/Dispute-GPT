@@ -1,0 +1,32 @@
+{% extends "base_header.html" %}
+{% block title %}Conversation with {{ thread.client.first_name }}{% endblock %}
+
+{% block content %}
+<main class="pt-20 pb-12 min-h-[calc(100vh-4rem)] px-6 md:px-12">
+  <div class="max-w-xl mx-auto">
+    <a href="{{ url_for('business_dashboard') }}"
+       class="glass-btn glass-btn--ghost mb-4 inline-flex items-center gap-1 text-sm">← Back to Dashboard</a>
+  </div>
+  <div class="max-w-xl mx-auto space-y-4 p-4">
+    {% for msg in thread.messages|sort(attribute='created_at') %}
+      <div class="flex {{ 'justify-end' if msg.from_business else 'justify-start' }}">
+        <div class="inline-block px-4 py-2 rounded-2xl
+                    {{ 'glass-card glass-card--heavy text-white' if msg.from_business else 'glass-card glass-card--light text-gray-900' }}">
+          <p class="whitespace-pre-wrap">{{ msg.body }}</p>
+          <span class="block text-xs text-gray-500 mt-1">
+            {{ msg.created_at.strftime('%b %d at %-I:%M %p') }}
+          </span>
+        </div>
+      </div>
+    {% endfor %}
+
+    <form method="POST"
+          action="{{ url_for('messages_thread', client_id=thread.client_id) }}"
+          class="mt-6 flex space-x-2">
+      <input type="text" name="body" placeholder="Type a message..." required
+             class="glass-input flex-1 rounded-full" />
+      <button type="submit" class="glass-btn glass-btn--primary glass-btn--pill p-2">➤</button>
+    </form>
+  </div>
+</main>
+{% endblock %}

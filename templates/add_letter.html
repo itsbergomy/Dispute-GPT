@@ -1,0 +1,57 @@
+{# templates/add_letter.html #}
+{% extends "base_header.html" %}
+
+{% block title %}Record Mailed Letter{% endblock %}
+
+{% block content %}
+<main class="flex justify-center items-center min-h-[80vh] px-4 py-10">
+  <div class="glass-card glass-card--heavy glass-p-lg w-full max-w-lg">
+    <h2 class="text-2xl font-bold text-blue-900 mb-6">Record Mailed Letter</h2>
+    <form action="{{ url_for('add_letter') }}" method="POST" class="space-y-6">
+
+      <div>
+        <label for="recipient" class="glass-label">Recipient</label>
+        <input
+          type="text"
+          id="recipient"
+          name="recipient"
+          required
+          placeholder="e.g. Experian"
+          class="glass-input mt-1 w-full"
+        />
+      </div>
+
+      <div>
+        <label for="account_number" class="glass-label">Account Number</label>
+        <input
+          type="text"
+          id="account_number"
+          name="account_number"
+          required
+          placeholder="e.g. 123456789"
+          class="glass-input mt-1 w-full"
+        />
+      </div>
+
+      <div>
+        <label for="letter_text" class="glass-label">Letter Text</label>
+        <textarea
+          id="letter_text"
+          name="letter_text"
+          rows="6"
+          required
+          placeholder="Paste the text of the letter you mailed..."
+          class="glass-input glass-textarea mt-1 w-full"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        class="glass-btn glass-btn--primary glass-btn--full"
+      >
+        Save Letter
+      </button>
+    </form>
+  </div>
+</main>
+{% endblock %}

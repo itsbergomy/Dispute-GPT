@@ -43,10 +43,10 @@ PACKS = {
 }
 
 PACK_INFO = [
-    {"key": "default", "name": "Default Pack", "description": "Your standard dispute templates."},
-    {"key": "arbitration", "name": "Arbitration Pack", "description": "Prompts tailored for arbitration under 15 U.S.C. §1681e(b)."},
-    {"key": "consumer_law", "name": "Consumer Law Pack", "description": "Templates citing various consumer-protection statutes."},
-    {"key": "ACDV_response", "name": "ACDV Enforcement Pack", "description": "Prompts tailored to generate letters demanding the Automated Consumer Dispute Verification record, specifying the method of verification, the submission procedure, and disclosure of the credit reporting agency's FCRA compliance policies."}
+    {"key": "default", "name": "📝 Default Pack", "description": "Your go-to dispute templates — clean, direct, and effective for first-round disputes."},
+    {"key": "arbitration", "name": "⚖️ Arbitration Pack", "description": "Heavy hitters. Arbitration demands under 15 U.S.C. §1681e(b) — for when bureaus won't budge."},
+    {"key": "consumer_law", "name": "🛡️ Consumer Law Pack", "description": "Cite the FCBA, FDCPA, and more — full statutory firepower for stubborn creditors."},
+    {"key": "ACDV_response", "name": "🔍 ACDV Enforcement Pack", "description": "Demand the full ACDV record — method of verification, submission procedure, and FCRA compliance docs. Make them prove it."}
 ]
 
 

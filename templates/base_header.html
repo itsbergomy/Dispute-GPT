@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}DisputeGPT{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/liquid-glass.css') }}">
 </head>
-<body class="bg-white text-gray-800 font-sans">
+<body class="glass-body">
 
   <!-- FIXED HEADER -->
-  <header class="fixed top-0 left-0 right-0 h-16 bg-white shadow-sm z-40 flex items-center justify-between px-8">
-    <!-- logo + optional pro nav -->
+  <header class="fixed top-0 left-0 right-0 h-16 glass-header z-40 flex items-center justify-between px-8">
     <div class="flex items-center space-x-6">
-      <a href="{{ url_for('index') }}" class="flex items-center text-2xl font-bold text-blue-900">
+      <a href="{{ url_for('index') }}" class="flex items-center text-2xl font-bold">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M3 10h4l3 10 4-18 3 10h4" />
@@ -20,172 +20,112 @@
         DisputeGPT
       </a>
 
-      {% if current_user.is_authenticated and current_user.plan != 'free' %}
-      <nav class="hidden md:flex space-x-6 text-lg font-medium">
-        <a href="{{ url_for('report_analyzer') }}" class="hover:text-blue-900">Report Analyzer</a>
-        <a href="{{ url_for('prompt_packs') }}"    class="hover:text-blue-900">Prompt Packs</a>
-        <a href="{{ url_for('funding_sequencer') }}" class="hover:text-blue-900">Funding Sequencer</a>
-
-        {# only show this for Business users #}
-        {% if current_user.plan == 'business' %}
-          <a href="{{ url_for('business_dashboard') }}" class="hover:text-blue-900">Dashboard</a>
-        {% endif %}
-      </nav>
-      {% endif %}
+      {# Nav links removed — all accessible from dashboard quick links #}
     </div>
 
-    <!-- user / auth actions -->
     <div class="flex items-center space-x-4">
       {% if current_user.is_authenticated %}
-        <div class="flex items-center space-x-2 text-sm font-medium text-green-700">
-          <span class="w-2.5 h-2.5 bg-green-500 rounded-full"></span>
+        <div class="flex items-center space-x-2 text-sm font-medium">
+          <span class="w-2 h-2 bg-green-500 rounded-full"></span>
           <span>{{ current_user.username }}</span>
           {% if current_user.plan != 'free' %}
-            <strong class="uppercase text-black ml-1">{{ current_user.plan }}</strong>
+            <span class="glass-badge glass-badge--info ml-1">{{ current_user.plan }}</span>
           {% endif %}
         </div>
 
-        {# prompt-pack badge #}
-        {% if session.get('prompt_pack') %}
-          <span class="ml-4 px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm uppercase">
-            {{ session.prompt_pack.replace('_',' ') }}
-          </span>
+        {% if current_user.plan == 'pro' %}
+        <!-- Prompt Pack Toggle (Pro only) -->
+        <div class="relative ml-2" id="packToggleWrap">
+          <button id="packToggleBtn"
+                  class="glass-btn glass-btn--pill px-3 py-1 text-xs font-semibold flex items-center gap-1"
+                  style="background:rgba(255,255,255,0.12);backdrop-filter:blur(12px);">
+            {% if session.get('prompt_pack') %}
+              {{ session.prompt_pack.replace('_',' ') }}
+            {% else %}
+              Select Pack
+            {% endif %}
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="packDropdown"
+               class="hidden absolute right-0 top-full mt-1 w-64 rounded-2xl overflow-hidden z-50"
+               style="background:rgba(30,30,40,0.85);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15);">
+            {% for pack in [
+              {'key':'default','name':'📝 Default','desc':'Clean first-round dispute templates.'},
+              {'key':'arbitration','name':'⚖️ Arbitration','desc':'Heavy hitters — 15 U.S.C. §1681e(b).'},
+              {'key':'consumer_law','name':'🛡️ Consumer Law','desc':'FCBA, FDCPA statutory firepower.'},
+              {'key':'ACDV_response','name':'🔍 ACDV Enforcement','desc':'Demand full ACDV verification records.'}
+            ] %}
+            <a href="{{ url_for('disputes.set_prompt_pack', pack=pack.key) }}"
+               class="block px-4 py-2.5 text-sm transition hover:bg-white/10
+                      {% if session.get('prompt_pack') == pack.key %}bg-white/15 font-semibold{% endif %}">
+              <span class="font-medium">{{ pack.name }}</span>
+              <span class="block text-xs mt-0.5" style="color:var(--text-tertiary);">{{ pack.desc }}</span>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
         {% endif %}
 
-        {% if current_user.plan == 'free' %}
-          <a href="{{ url_for('join_pro') }}"
-             class="bg-blue-900 text-white font-bold py-2 px-4 rounded-full shadow hover:shadow-lg transition">
-            Join Pro
-          </a>
-        {% elif current_user.plan == 'pro' %}
-          <a href="{{ url_for('join_business') }}"
-             class="bg-blue-900 text-white font-bold py-2 px-4 rounded-full shadow hover:shadow-lg transition">
-            Join Business
-          </a>
-        {% endif %}
+        <!-- Dev plan switcher -->
+        <div class="flex items-center gap-1 ml-2">
+          {% for p in ['free', 'pro', 'business'] %}
+            <a href="{{ url_for('auth.dev_switch_plan', plan=p) }}"
+               class="px-2 py-0.5 rounded-full text-xs font-semibold transition
+                      {% if current_user.plan == p %}
+                        glass-btn--primary text-white
+                      {% else %}
+                        glass-card--light hover:opacity-80
+                      {% endif %}"
+               style="{% if current_user.plan == p %}background:var(--accent);color:#fff;{% endif %}">
+              {{ p }}
+            </a>
+          {% endfor %}
+        </div>
 
-        <a href="{{ url_for('logout') }}" class="text-lg font-medium hover:text-blue-900">Logout</a>
+        <a href="{{ url_for('logout') }}" class="text-base font-medium">Logout</a>
 
       {% else %}
-        <a href="{{ url_for('login') }}" class="text-lg font-medium hover:text-blue-900">Sign in</a>
-        <a href="{{ url_for('signup') }}"
-           class="bg-blue-900 text-white font-bold py-2 px-4 rounded-full shadow hover:shadow-lg transition">
+        <a href="{{ url_for('login') }}" class="text-base font-medium">Sign in</a>
+        <a href="{{ url_for('signup') }}" class="glass-btn glass-btn--primary glass-btn--pill">
           Join Pro
         </a>
       {% endif %}
     </div>
   </header>
-  <p>DEBUG: {{ current_user.plan }}</p>
+
   {% if current_user.is_authenticated and current_user.plan != 'business' %}
   <!-- Dispute Folder Toggle -->
   <button id="openDisputeFolder"
-          class="fixed bottom-4 left-4 z-50 bg-blue-900 text-white font-bold px-4 py-2 rounded-full shadow-lg hover:bg-blue-800 transition">
-    📁 Dispute Folder
+          class="fixed bottom-4 left-4 z-50 glass-btn glass-btn--primary glass-btn--pill shadow-lg">
+    Dispute Folder
   </button>
 
-    <!-- Dispute Folder Drawer -->
-  <aside
-  id="disputeDrawer"
-  class="fixed top-16 right-0 h-[calc(100vh-4rem)] w-0 overflow-hidden bg-white shadow-2xl rounded-l-3xl transition-[width] duration-300 z-50"
->
-  <!-- Drawer Header -->
-  <div class="flex items-center justify-between px-6 py-4 border-b">
-    <h3 class="text-xl font-semibold">Your Dispute Folder</h3>
-    <button id="closeDisputeFolder" class="text-2xl">&times;</button>
-  </div>
-
-  <!-- Tab Bar -->
-  <nav class="flex space-x-4 border-b px-6">
-    <button data-tab="logs" class="tab-btn py-2 px-3 border-b-2 border-blue-900 text-blue-900 font-medium">
-      ✏️ Daily Log
-    </button>
-    <button data-tab="letters" class="tab-btn py-2 px-3 text-gray-600 hover:text-gray-800">
-      📫 Mailed Letters
-    </button>
-    <button data-tab="docs" class="tab-btn py-2 px-3 text-gray-600 hover:text-gray-800">
-      📎 Correspondence
-    </button>
-  </nav>
-
-  <!-- Tab Panels -->
-  <div class="p-6 overflow-y-auto h-full">
-    <!-- Daily Log -->
-    <div id="panel-logs" class="tab-panel">
-      {% for entry in logs %}
-        <div class="mb-4">
-          <div class="text-sm text-gray-500">{{ entry.timestamp }}</div>
-          <p>{{ entry.content }}</p>
-        </div>
-      {% else %}
-        <p class="text-gray-500">No log entries yet.</p>
-      {% endfor %}
-      <form action="{{ url_for('add_log') }}" method="POST" class="mt-4">
-        <textarea
-          name="content" required
-          class="w-full p-2 border rounded-lg"
-          placeholder="Describe your activity..."
-        ></textarea>
-        <button
-          type="submit"
-          class="mt-2 bg-blue-900 text-white px-4 py-2 rounded-lg"
-        >Add Log Entry</button>
-      </form>
+  <!-- Dispute Folder Drawer (content loaded via AJAX) -->
+  <aside id="disputeDrawer"
+         class="fixed top-16 right-0 h-[calc(100vh-4rem)] w-0 overflow-hidden glass-drawer rounded-l-3xl transition-[width] duration-300 z-50">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-white/20">
+      <h3 class="text-xl font-semibold">Your Dispute Folder</h3>
+      <button id="closeDisputeFolder" class="text-2xl hover:text-red-400 transition">&times;</button>
     </div>
-
-    <!-- Mailed Letters -->
-    <div id="panel-letters" class="tab-panel hidden">
-      {% for L in letters %}
-        <div class="mb-4">
-          <div class="text-sm text-gray-500">{{ L.sent_at }}</div>
-          <a href="{{ L.pdf_path }}" class="text-blue-700 underline">Download Letter</a>
-        </div>
-      {% else %}
-        <p class="text-gray-500">No mailed letters recorded.</p>
-      {% endfor %}
-      <form action="{{ url_for('add_letter') }}" method="POST" class="mt-4">
-        <textarea
-          name="letter_text" required
-          class="w-full p-2 border rounded-lg"
-          placeholder="Paste letter text..."
-        ></textarea>
-        <button
-          type="submit"
-          class="mt-2 bg-blue-900 text-white px-4 py-2 rounded-lg"
-        >Record Mailed Letter</button>
-      </form>
+    <div id="drawerContent" class="h-full">
+      <p class="p-6 text-sm" style="color:var(--text-tertiary);">Loading...</p>
     </div>
-
-    <!-- Correspondence -->
-    <div id="panel-docs" class="tab-panel hidden">
-      {% for doc in docs %}
-        <div class="mb-4">
-          <div class="text-sm text-gray-500">
-            {{ doc.received_at }} • {{ doc.filename }}
-          </div>
-          <a href="{{ doc.file_url }}" class="text-blue-700 underline">View Document</a>
-        </div>
-      {% else %}
-        <p class="text-gray-500">No correspondence uploaded.</p>
-      {% endfor %}
-      <form
-        action="{{ url_for('upload_doc') }}"
-        method="POST"
-        enctype="multipart/form-data"
-        class="mt-4"
-      >
-        <input type="file" name="file" required class="mb-2" />
-        <button
-          type="submit"
-          class="bg-blue-900 text-white px-4 py-2 rounded-lg"
-        >Upload Document</button>
-      </form>
-    </div>
-  </div>
-</aside>
-
+  </aside>
   {% endif %}
 
-  <!-- page body -->
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-md space-y-2 px-4">
+      {% for category, message in messages %}
+        <div class="glass-flash glass-flash--{{ 'error' if category == 'error' else ('success' if category == 'success' else 'info') }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
   <main class="pt-16">
     {% block content %}{% endblock %}
   </main>
@@ -193,42 +133,112 @@
   {% block scripts %}
   <script>
     const drawer = document.getElementById('disputeDrawer');
+    const drawerContent = document.getElementById('drawerContent');
     const openBtn = document.getElementById('openDisputeFolder');
     const closeBtn = document.getElementById('closeDisputeFolder');
-  
-    openBtn.addEventListener('click', () => {
-      drawer.style.width = '500px';
-    });
-    closeBtn.addEventListener('click', () => {
-      drawer.style.width = '0';
-    });
-  
-    // Tab switching
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        // reset all tab buttons
-        document.querySelectorAll('.tab-btn').forEach(b => {
-          b.classList.remove('border-blue-900','text-blue-900','font-medium');
-          b.classList.add('text-gray-600');
+
+    // ─── Load drawer content via AJAX ───
+    function loadDrawer() {
+      if (!drawerContent) return;
+      drawerContent.innerHTML = '<p class="p-6 text-sm" style="color:var(--text-tertiary);">Loading...</p>';
+      fetch('/api/dispute-folder-data')
+        .then(r => r.text())
+        .then(html => {
+          drawerContent.innerHTML = html;
+          initDrawerTabs();
+          initDrawerForms();
+        })
+        .catch(() => {
+          drawerContent.innerHTML = '<p class="p-6 text-sm text-red-400">Failed to load folder.</p>';
         });
-        // activate this one
-        btn.classList.add('border-blue-900','text-blue-900','font-medium');
-        btn.classList.remove('text-gray-600');
-  
-        // hide panels
-        document.querySelectorAll('.tab-panel').forEach(panel => {
-          panel.classList.add('hidden');
+    }
+
+    // ─── Tab switching inside the drawer ───
+    function initDrawerTabs() {
+      drawerContent.querySelectorAll('.glass-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          drawerContent.querySelectorAll('.glass-tab').forEach(b => b.classList.remove('glass-tab--active'));
+          btn.classList.add('glass-tab--active');
+          drawerContent.querySelectorAll('.drawer-panel').forEach(p => p.classList.add('hidden'));
+          const name = btn.dataset.tab;
+          if (name) {
+            const panel = drawerContent.querySelector('#dp-' + name);
+            if (panel) panel.classList.remove('hidden');
+          }
         });
-        // show the matching panel
-        const name = btn.dataset.tab;            // "logs" / "letters" / "docs"
-        document.getElementById(`panel-${name}`)
-                .classList.remove('hidden');
       });
-    });
+    }
+
+    // ─── AJAX form submission (stay in drawer) ───
+    function initDrawerForms() {
+      // Regular forms (log, letter)
+      drawerContent.querySelectorAll('.drawer-form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const url = form.dataset.url;
+          const fd = new FormData(form);
+          const params = new URLSearchParams(fd);
+          fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString()
+          }).then(() => loadDrawer());
+        });
+      });
+
+      // File upload form
+      drawerContent.querySelectorAll('.drawer-upload-form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const url = form.dataset.url;
+          const fd = new FormData(form);
+          fetch(url, { method: 'POST', body: fd })
+            .then(() => loadDrawer());
+        });
+      });
+
+      // Delete buttons
+      drawerContent.querySelectorAll('.drawer-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!confirm('Delete this document?')) return;
+          fetch(btn.dataset.url, { method: 'POST' })
+            .then(() => loadDrawer());
+        });
+      });
+    }
+
+    // ─── Open / Close drawer ───
+    if (openBtn) {
+      openBtn.addEventListener('click', () => {
+        drawer.style.width = '500px';
+        loadDrawer();
+      });
+    }
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => { drawer.style.width = '0'; });
+    }
+
+    // Pack dropdown toggle
+    const packBtn = document.getElementById('packToggleBtn');
+    const packDrop = document.getElementById('packDropdown');
+    if (packBtn && packDrop) {
+      packBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        packDrop.classList.toggle('hidden');
+      });
+      document.addEventListener('click', () => packDrop.classList.add('hidden'));
+    }
+
+    // Auto-dismiss flash messages
+    setTimeout(() => {
+      document.querySelectorAll('.glass-flash').forEach(el => {
+        el.style.transition = 'opacity 0.5s ease';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 500);
+      });
+    }, 4000);
   </script>
-  
   {% endblock %}
 
 </body>
 </html>
-
