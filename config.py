@@ -72,4 +72,70 @@ def create_app():
     def loads_filter(s):
         return json.loads(s)
 
+    # Backward-compatible endpoint aliases so existing templates
+    # using url_for('index') etc. still work without blueprint prefix
+    _aliases = {
+        # disputes blueprint
+        'index': 'disputes.index',
+        'upload_pdf': 'disputes.upload_pdf',
+        'select_account': 'disputes.select_account',
+        'confirm_account': 'disputes.confirm_account',
+        'save_confirmed_account': 'disputes.save_confirmed_account',
+        'select_entity': 'disputes.select_entity',
+        'handle_entity': 'disputes.handle_entity',
+        'define_details': 'disputes.define_details',
+        'choose_template': 'disputes.choose_template',
+        'prompt_packs': 'disputes.prompt_packs',
+        'generate_letter_screen': 'disputes.generate_letter_screen',
+        'generate_process': 'disputes.generate_process',
+        'final_review': 'disputes.final_review',
+        'manual_mode': 'disputes.manual_mode',
+        'mail_letter': 'disputes.mail_letter',
+        'convert_pdf': 'disputes.convert_pdf',
+        'confirm_next_round': 'disputes.confirm_next_round',
+        'dispute_folder': 'disputes.dispute_folder',
+        'add_log': 'disputes.add_log',
+        'add_letter': 'disputes.add_letter',
+        'upload_doc': 'disputes.upload_doc',
+        'report_analyzer': 'disputes.report_analyzer',
+        'funding_sequencer': 'disputes.funding_sequencer',
+        # auth blueprint
+        'login': 'auth.login',
+        'logout': 'auth.logout',
+        'signup': 'auth.signup',
+        'join_pro': 'auth.join_pro',
+        'join_business': 'auth.join_business',
+        'create_payment_intent': 'auth.create_payment_intent',
+        'update_plan': 'auth.update_plan',
+        # business blueprint
+        'business_dashboard': 'business.business_dashboard',
+        'create_client': 'business.create_client',
+        'view_client': 'business.view_client',
+        'edit_client': 'business.edit_client',
+        'client_file': 'business.client_file',
+        'upload_correspondence': 'business.upload_correspondence',
+        'view_correspondence_file': 'business.view_correspondence_file',
+        'run_analysis_for_client': 'business.run_analysis_for_client',
+        'messages_thread': 'business.messages_thread',
+        'update_recommendations': 'business.update_recommendations',
+        'send_analysis_email_route': 'business.send_analysis_email_route',
+        'mail_analysis_to_client': 'business.mail_analysis_to_client',
+        'run_disputegpt_flow': 'business.run_disputegpt_flow',
+        'finalize_disputegpt_letter': 'business.finalize_disputegpt_letter',
+        'extract_for_disputegpt': 'business.extract_for_disputegpt',
+        'toggle_workflow': 'business.toggle_workflow',
+        'list_custom_letters': 'business.list_custom_letters',
+        'new_custom_letter': 'business.new_custom_letter',
+        'edit_custom_letter': 'business.edit_custom_letter',
+        'delete_custom_letter': 'business.delete_custom_letter',
+    }
+
+    from flask import url_for as _original_url_for
+    @app.url_build_error_handlers.append
+    def _handle_url_build_error(error, endpoint, values):
+        """Redirect old endpoint names to blueprint-prefixed versions."""
+        if endpoint in _aliases:
+            return _original_url_for(_aliases[endpoint], **values)
+        raise error
+
     return app

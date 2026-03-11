@@ -37,7 +37,7 @@ def signup():
             last_name=ln,
             username=un,
             email=em,
-            password=generate_password_hash(pw),
+            password=generate_password_hash(pw, method='pbkdf2:sha256'),
             plan='free'
         )
         db.session.add(new_user)

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}DisputeGPT{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-gray-800 font-sans">
+
+  <!-- FIXED HEADER -->
+  <header class="fixed top-0 left-0 right-0 h-16 bg-white shadow-sm z-40 flex items-center justify-between px-8">
+    <!-- logo + optional pro nav -->
+    <div class="flex items-center space-x-6">
+      <a href="{{ url_for('index') }}" class="flex items-center text-2xl font-bold text-blue-900">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 10h4l3 10 4-18 3 10h4" />
+        </svg>
+        DisputeGPT
+      </a>
+
+      {% if current_user.is_authenticated and current_user.plan != 'free' %}
+      <nav class="hidden md:flex space-x-6 text-lg font-medium">
+        <a href="{{ url_for('report_analyzer') }}" class="hover:text-blue-900">Report Analyzer</a>
+        <a href="{{ url_for('prompt_packs') }}"    class="hover:text-blue-900">Prompt Packs</a>
+        <a href="{{ url_for('funding_sequencer') }}" class="hover:text-blue-900">Funding Sequencer</a>
+
+        {# only show this for Business users #}
+        {% if current_user.plan == 'business' %}
+          <a href="{{ url_for('business_dashboard') }}" class="hover:text-blue-900">Dashboard</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+    </div>
+
+    <!-- user / auth actions -->
+    <div class="flex items-center space-x-4">
+      {% if current_user.is_authenticated %}
+        <div class="flex items-center space-x-2 text-sm font-medium text-green-700">
+          <span class="w-2.5 h-2.5 bg-green-500 rounded-full"></span>
+          <span>{{ current_user.username }}</span>
+          {% if current_user.plan != 'free' %}
+            <strong class="uppercase text-black ml-1">{{ current_user.plan }}</strong>
+          {% endif %}
+        </div>
+
+        {# prompt-pack badge #}
+        {% if session.get('prompt_pack') %}
+          <span class="ml-4 px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm uppercase">
+            {{ session.prompt_pack.replace('_',' ') }}
+          </span>
+        {% endif %}
+
+        {% if current_user.plan == 'free' %}
+          <a href="{{ url_for('join_pro') }}"
+             class="bg-blue-900 text-white font-bold py-2 px-4 rounded-full shadow hover:shadow-lg transition">
+            Join Pro
+          </a>
+        {% elif current_user.plan == 'pro' %}
+          <a href="{{ url_for('join_business') }}"
+             class="bg-blue-900 text-white font-bold py-2 px-4 rounded-full shadow hover:shadow-lg transition">
+            Join Business
+          </a>
+        {% endif %}
+
+        <a href="{{ url_for('logout') }}" class="text-lg font-medium hover:text-blue-900">Logout</a>
+
+      {% else %}
+        <a href="{{ url_for('login') }}" class="text-lg font-medium hover:text-blue-900">Sign in</a>
+        <a href="{{ url_for('signup') }}"
+           class="bg-blue-900 text-white font-bold py-2 px-4 rounded-full shadow hover:shadow-lg transition">
+          Join Pro
+        </a>
+      {% endif %}
+    </div>
+  </header>
+  <p>DEBUG: {{ current_user.plan }}</p>
+  {% if current_user.is_authenticated and current_user.plan != 'business' %}
+  <!-- Dispute Folder Toggle -->
+  <button id="openDisputeFolder"
+          class="fixed bottom-4 left-4 z-50 bg-blue-900 text-white font-bold px-4 py-2 rounded-full shadow-lg hover:bg-blue-800 transition">
+    📁 Dispute Folder
+  </button>
+
+    <!-- Dispute Folder Drawer -->
+  <aside
+  id="disputeDrawer"
+  class="fixed top-16 right-0 h-[calc(100vh-4rem)] w-0 overflow-hidden bg-white shadow-2xl rounded-l-3xl transition-[width] duration-300 z-50"
+>
+  <!-- Drawer Header -->
+  <div class="flex items-center justify-between px-6 py-4 border-b">
+    <h3 class="text-xl font-semibold">Your Dispute Folder</h3>
+    <button id="closeDisputeFolder" class="text-2xl">&times;</button>
+  </div>
+
+  <!-- Tab Bar -->
+  <nav class="flex space-x-4 border-b px-6">
+    <button data-tab="logs" class="tab-btn py-2 px-3 border-b-2 border-blue-900 text-blue-900 font-medium">
+      ✏️ Daily Log
+    </button>
+    <button data-tab="letters" class="tab-btn py-2 px-3 text-gray-600 hover:text-gray-800">
+      📫 Mailed Letters
+    </button>
+    <button data-tab="docs" class="tab-btn py-2 px-3 text-gray-600 hover:text-gray-800">
+      📎 Correspondence
+    </button>
+  </nav>
+
+  <!-- Tab Panels -->
+  <div class="p-6 overflow-y-auto h-full">
+    <!-- Daily Log -->
+    <div id="panel-logs" class="tab-panel">
+      {% for entry in logs %}
+        <div class="mb-4">
+          <div class="text-sm text-gray-500">{{ entry.timestamp }}</div>
+          <p>{{ entry.content }}</p>
+        </div>
+      {% else %}
+        <p class="text-gray-500">No log entries yet.</p>
+      {% endfor %}
+      <form action="{{ url_for('add_log') }}" method="POST" class="mt-4">
+        <textarea
+          name="content" required
+          class="w-full p-2 border rounded-lg"
+          placeholder="Describe your activity..."
+        ></textarea>
+        <button
+          type="submit"
+          class="mt-2 bg-blue-900 text-white px-4 py-2 rounded-lg"
+        >Add Log Entry</button>
+      </form>
+    </div>
+
+    <!-- Mailed Letters -->
+    <div id="panel-letters" class="tab-panel hidden">
+      {% for L in letters %}
+        <div class="mb-4">
+          <div class="text-sm text-gray-500">{{ L.sent_at }}</div>
+          <a href="{{ L.pdf_path }}" class="text-blue-700 underline">Download Letter</a>
+        </div>
+      {% else %}
+        <p class="text-gray-500">No mailed letters recorded.</p>
+      {% endfor %}
+      <form action="{{ url_for('add_letter') }}" method="POST" class="mt-4">
+        <textarea
+          name="letter_text" required
+          class="w-full p-2 border rounded-lg"
+          placeholder="Paste letter text..."
+        ></textarea>
+        <button
+          type="submit"
+          class="mt-2 bg-blue-900 text-white px-4 py-2 rounded-lg"
+        >Record Mailed Letter</button>
+      </form>
+    </div>
+
+    <!-- Correspondence -->
+    <div id="panel-docs" class="tab-panel hidden">
+      {% for doc in docs %}
+        <div class="mb-4">
+          <div class="text-sm text-gray-500">
+            {{ doc.received_at }} • {{ doc.filename }}
+          </div>
+          <a href="{{ doc.file_url }}" class="text-blue-700 underline">View Document</a>
+        </div>
+      {% else %}
+        <p class="text-gray-500">No correspondence uploaded.</p>
+      {% endfor %}
+      <form
+        action="{{ url_for('upload_doc') }}"
+        method="POST"
+        enctype="multipart/form-data"
+        class="mt-4"
+      >
+        <input type="file" name="file" required class="mb-2" />
+        <button
+          type="submit"
+          class="bg-blue-900 text-white px-4 py-2 rounded-lg"
+        >Upload Document</button>
+      </form>
+    </div>
+  </div>
+</aside>
+
+  {% endif %}
+
+  <!-- page body -->
+  <main class="pt-16">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}
+  <script>
+    const drawer = document.getElementById('disputeDrawer');
+    const openBtn = document.getElementById('openDisputeFolder');
+    const closeBtn = document.getElementById('closeDisputeFolder');
+  
+    openBtn.addEventListener('click', () => {
+      drawer.style.width = '500px';
+    });
+    closeBtn.addEventListener('click', () => {
+      drawer.style.width = '0';
+    });
+  
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // reset all tab buttons
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('border-blue-900','text-blue-900','font-medium');
+          b.classList.add('text-gray-600');
+        });
+        // activate this one
+        btn.classList.add('border-blue-900','text-blue-900','font-medium');
+        btn.classList.remove('text-gray-600');
+  
+        // hide panels
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+          panel.classList.add('hidden');
+        });
+        // show the matching panel
+        const name = btn.dataset.tab;            // "logs" / "letters" / "docs"
+        document.getElementById(`panel-${name}`)
+                .classList.remove('hidden');
+      });
+    });
+  </script>
+  
+  {% endblock %}
+
+</body>
+</html>
+

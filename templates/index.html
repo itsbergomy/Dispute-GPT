@@ -1,25 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Dispute GPT</title>
-<style>
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f7; margin:0; padding:0; display:flex; align-items:center; justify-content:center; height:100vh; }
-.container { background:white; padding:40px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1); text-align:center; }
-input[type=file] { margin-bottom:20px; }
-button { background:#0071e3; color:white; border:none; padding:10px 20px; border-radius:8px; font-size:16px; cursor:pointer; }
-button:hover { background:#0059b3; }
-h1 { margin-bottom:20px; }
-</style>
-</head>
-<body>
-<div class="container">
-    <h1>Dispute GPT</h1>
-    <form method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept="application/pdf" required>
-        <br>
-        <button type="submit">Run Dispute GPT</button>
-    </form>
-</div>
-</body>
-</html>
+{% extends "base_header.html" %}
+{% block title %}Welcome to DisputeGPT{% endblock %}
+{% block content %}
+<main class="flex justify-center items-center min-h-[75vh] px-4">
+  <div class="bg-white rounded-3xl shadow-xl p-10 text-center max-w-xl w-full border border-gray-100 transition-all backdrop-blur-xl">
+    <h2 class="text-4xl font-extrabold mb-4 text-[#2C3E50]">DisputeGPT</h2>
+    <p class="text-gray-600 mb-8 text-lg">Choose how you'd like to proceed crafting your dispute letter.</p>
+    <div class="flex flex-col md:flex-row gap-4 justify-center">
+      <a href="{{ url_for('upload_pdf') }}"
+         class="flex-1 bg-blue-900 hover:bg-blue-800 text-white font-bold py-4 px-8 rounded-xl flex items-center justify-center text-lg shadow hover:shadow-lg active:scale-95 transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v16h16V4H4zm4 4l4 4 4-4" />
+        </svg>
+        Dispute Mode (Upload PDF)
+      </a>
+      <a href="{{ url_for('manual_mode') }}"
+         class="flex-1 bg-blue-900 hover:bg-blue-800 text-white font-bold py-4 px-8 rounded-xl flex items-center justify-center text-lg shadow hover:shadow-lg active:scale-95 transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 20h9" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M16.5 3.5l4 4M4 13v6a2 2 0 002 2h6l8-8-6-6-8 8z" />
+        </svg>
+        Manual Mode (Enter Details)
+      </a>
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+
