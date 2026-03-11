@@ -1,0 +1,546 @@
+"""
+Core dispute workflow blueprint — the consumer-facing dispute flow.
+Extracted from dispute_ui.py.
+"""
+
+import os
+import json
+from datetime import datetime, timedelta
+from flask import (
+    Blueprint, request, jsonify, render_template, flash,
+    redirect, url_for, session, send_file, current_app
+)
+from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
+
+from models import db, User, DisputeRound, DailyLogEntry, MailedLetter, Correspondence
+from services.pdf_parser import (
+    extract_negative_items_from_pdf, compute_pdf_hash,
+    extract_pdf_metrics, pdf_to_base64_images
+)
+from services.letter_generator import (
+    PACKS, PACK_INFO, generate_letter, letter_to_pdf,
+    image_to_pdf, merge_dispute_package
+)
+from services.delivery import mail_letter_via_docupost
+from services.report_analyzer import run_report_analysis
+
+disputes_bp = Blueprint('disputes', __name__)
+
+
+def free_user_limit_for_dispute(user):
+    if user.plan != 'free':
+        return False
+    if not user.last_round_time:
+        return False
+    now = datetime.utcnow()
+    if now - user.last_round_time < timedelta(hours=48):
+        return True
+    return False
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf'}
+
+
+@disputes_bp.route('/')
+def index():
+    return render_template('index.html')
+
+
+@disputes_bp.route('/upload-pdf', methods=['GET', 'POST'])
+def upload_pdf():
+    if request.method == 'POST':
+        if current_user.is_authenticated:
+            if current_user.plan == 'free':
+                if free_user_limit_for_dispute(current_user):
+                    flash("Free plan: You must wait 48 hours between dispute rounds.", "error")
+                    return redirect(url_for('disputes.index'))
+
+        if 'pdfFile' not in request.files:
+            return jsonify({"error": 'No file selected'}), 400
+
+        file = request.files['pdfFile']
+        if file.filename == '':
+            return jsonify({"error": 'No file selected'}), 400
+
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+
+            pdf_hash = compute_pdf_hash(filepath)
+            session['pdf_hash'] = pdf_hash
+
+            negative_items = extract_negative_items_from_pdf(filepath)
+            session['negative_items'] = negative_items
+
+            existing_round = DisputeRound.query.filter_by(
+                user_id=current_user.id,
+                pdf_hash=pdf_hash
+            ).first()
+
+            if not existing_round:
+                new_round = DisputeRound(
+                    user_id=current_user.id,
+                    pdf_hash=pdf_hash,
+                    round_number=1
+                )
+                db.session.add(new_round)
+                db.session.commit()
+                session['current_round'] = 1
+                session['disputed_accounts'] = []
+                flash("New PDF detected. Starting Round 1.", "success")
+                return redirect('/select-account')
+            else:
+                session['current_round'] = existing_round.round_number
+                session['disputed_accounts'] = existing_round.get_disputed_accounts()
+
+                if all(item['account_number'] in session['disputed_accounts'] for item in negative_items):
+                    return redirect(url_for('disputes.confirm_next_round'))
+
+                flash(f"Resuming Round {existing_round.round_number}.", "info")
+                return redirect('/select-account')
+        else:
+            return jsonify({"error": "Invalid file type. Only PDFs allowed."}), 400
+
+    return render_template('upload_pdf.html')
+
+
+@disputes_bp.route('/confirm-next-round', methods=['GET', 'POST'])
+def confirm_next_round():
+    pdf_hash = session.get('pdf_hash')
+    if not pdf_hash:
+        flash("Missing PDF context.", "error")
+        return redirect(url_for('disputes.upload_pdf'))
+
+    if request.method == 'POST':
+        session['pending_round_upgrade'] = False
+        session['current_round'] = session.get('current_round', 1) + 1
+        session['disputed_accounts'] = []
+        return redirect(url_for('disputes.select_account'))
+
+    current_round = session.get('current_round', 1)
+    return render_template('confirm_next_round.html', current_round=current_round)
+
+
+@disputes_bp.route('/select-account', methods=['GET'])
+def select_account():
+    items = session.get('negative_items', [])
+    return render_template('select_negative.html', negative_items=items)
+
+
+@disputes_bp.route('/confirm-account', methods=['GET'])
+def confirm_account():
+    account_name = request.args.get('account_name')
+    account_number = request.args.get('account_number')
+    status = request.args.get('status')
+
+    return render_template('confirm_account.html',
+        account_name=account_name,
+        account_number=account_number,
+        status=status
+    )
+
+
+@disputes_bp.route('/confirm-account/save', methods=['POST'])
+def save_confirmed_account():
+    account_number = request.form.get('account_number')
+
+    pdf_hash = session.get('pdf_hash')
+    if not pdf_hash:
+        flash("Missing PDF context.", "error")
+        return redirect(url_for('disputes.upload_pdf'))
+
+    round_record = DisputeRound.query.filter_by(
+        user_id=current_user.id,
+        pdf_hash=pdf_hash
+    ).first()
+
+    if not round_record:
+        flash("Could not find your dispute round record.", "error")
+        return redirect(url_for('disputes.upload_pdf'))
+
+    disputed_accounts = round_record.get_disputed_accounts()
+    if account_number not in disputed_accounts:
+        disputed_accounts.append(account_number)
+        round_record.set_disputed_accounts(disputed_accounts)
+        db.session.commit()
+
+    flash("Account confirmed for dispute.", "success")
+    return redirect(url_for('disputes.select_entity'))
+
+
+@disputes_bp.route('/select-entity', methods=['GET', 'POST'])
+def select_entity():
+    if request.method == 'POST':
+        session['account_name'] = request.form.get('account_name')
+        session['account_number'] = request.form.get('account_number')
+        session['status'] = request.form.get('status')
+    return render_template('select_entity.html')
+
+
+@disputes_bp.route('/handle-entity', methods=['POST'])
+def handle_entity():
+    selected = request.form.get('entity')
+    if not selected:
+        flash("Please select an entity.", "error")
+        return redirect(url_for('disputes.select_entity'))
+    session['selected_entity'] = selected
+    return redirect(url_for('disputes.define_details'))
+
+
+@disputes_bp.route('/define-details', methods=['GET', 'POST'])
+@login_required
+def define_details():
+    pack_key = session.get('prompt_pack', 'default')
+
+    core_fields = [
+        ('action', 'What would you like them to do?'),
+        ('issue', 'Brief summary of the dispute issue'),
+    ]
+    acdv_fields = [
+        ('dispute_date', 'Original Dispute Date (YYYY-MM-DD)'),
+        ('days', 'Deadline in business days')
+    ] if pack_key == 'ACDV_response' else []
+
+    all_fields = core_fields + acdv_fields
+
+    if request.method == 'POST':
+        for name, _ in all_fields:
+            session[name] = request.form.get(name, '').strip()
+        return redirect(url_for('disputes.choose_template'))
+
+    return render_template(
+        'define_details.html',
+        pack_key=pack_key,
+        core_fields=core_fields,
+        acdv_fields=acdv_fields,
+        entity=session.get('selected_entity', '')
+    )
+
+
+@disputes_bp.route('/choose-template', methods=['GET', 'POST'])
+@login_required
+def choose_template():
+    pack_key = session.get('prompt_pack', 'default')
+    raw_templates = PACKS.get(pack_key, PACKS['default'])
+
+    ctx = {
+        'entity': session.get('selected_entity', ''),
+        'account_name': session.get('account_name', ''),
+        'account_number': session.get('account_number', ''),
+        'marks': session.get('status', ''),
+        'action': session.get('action', ''),
+        'issue': session.get('issue', ''),
+        'dispute_date': session.get('dispute_date', ''),
+        'days': session.get('days', ''),
+    }
+
+    filled = [tpl.format(**ctx) for tpl in raw_templates]
+
+    if request.method == 'POST':
+        session['selected_template'] = request.form['template_text']
+        return redirect(url_for('disputes.generate_letter_screen'))
+
+    return render_template('choose_template.html', templates=filled, pack_key=pack_key)
+
+
+@disputes_bp.route('/prompt-packs', methods=['GET', 'POST'])
+@login_required
+def prompt_packs():
+    if request.method == 'POST':
+        session['prompt_pack'] = request.form['pack_key']
+        return redirect(url_for('disputes.index'))
+    return render_template('prompt_packs.html', packs=PACK_INFO)
+
+
+@disputes_bp.route('/generate-letter-screen', methods=['POST'])
+def generate_letter_screen():
+    template = request.form.get('template_text')
+    session['selected_template'] = template
+    return render_template('generate_letter.html')
+
+
+@disputes_bp.route('/generate-process')
+def generate_process():
+    template = session['selected_template']
+    data = {
+        "action": session['action'],
+        "issue": session['issue'],
+        "entity": session['selected_entity'],
+        "account_name": session['account_name'],
+        "account_number": session['account_number'],
+        "marks": session['status']
+    }
+    prompt = template.format(**data)
+    letter_text = generate_letter(prompt)
+    session['generated_letter'] = letter_text
+    return redirect(url_for('disputes.final_review'))
+
+
+@disputes_bp.route('/final-review')
+def final_review():
+    letter = session.get('generated_letter')
+    return render_template('final_review.html', letter=letter)
+
+
+@disputes_bp.route('/manual-mode', methods=['GET', 'POST'])
+def manual_mode():
+    if request.method == 'POST':
+        if current_user.is_authenticated and current_user.plan == 'free':
+            now = datetime.utcnow()
+            if current_user.last_round_time is None or (now - current_user.last_round_time > timedelta(hours=48)):
+                current_user.manual_accounts_used = 0
+                current_user.last_round_time = now
+                db.session.commit()
+
+            if current_user.manual_accounts_used >= 3:
+                flash("Free plan: You can only dispute 3 accounts in manual mode every 48 hours.", "error")
+                return redirect(url_for('disputes.index'))
+
+        session['account_name'] = request.form.get('account_name', '').strip()
+        session['account_number'] = request.form.get('account_number', '').strip()
+        session['status'] = request.form.get('account_status', '').strip()
+        session['selected_entity'] = request.form.get('entity', '').strip()
+        session['action'] = request.form.get('action', '').strip()
+        session['issue'] = request.form.get('issue', '').strip()
+        session['manual_mode'] = True
+
+        if current_user.is_authenticated and current_user.plan == 'free':
+            current_user.manual_accounts_used += 1
+            current_user.last_round_time = datetime.utcnow()
+            db.session.commit()
+
+        return redirect(url_for('disputes.choose_template'))
+
+    return render_template(
+        'manual_mode.html',
+        account_name=session.get('account_name', ''),
+        account_number=session.get('account_number', ''),
+        status=session.get('status', ''),
+        selected_entity=session.get('selected_entity', ''),
+        action=session.get('action', ''),
+        issue=session.get('issue', '')
+    )
+
+
+@disputes_bp.route('/mail-letter', methods=['GET', 'POST'])
+def mail_letter():
+    if request.method == 'GET':
+        return render_template('mail_letter.html',
+            from_name=session.get('user_name', ''),
+            from_address1=session.get('user_address_line1', ''),
+            from_city=session.get('user_city', ''),
+            from_state=session.get('user_state', ''),
+            from_zip=session.get('user_zip', '')
+        )
+
+    recipient = {
+        'name': request.form.get('to_name', ''),
+        'company': request.form.get('to_company', ''),
+        'address1': request.form.get('to_address1', ''),
+        'address2': request.form.get('to_address2', ''),
+        'city': request.form.get('to_city', ''),
+        'state': request.form.get('to_state', ''),
+        'zip': request.form.get('to_zip', ''),
+    }
+    sender = {
+        'name': request.form.get('from_name', session.get('user_name', '')),
+        'company': request.form.get('from_company', ''),
+        'address1': request.form.get('from_address1', session.get('user_address_line1', '')),
+        'address2': request.form.get('from_address2', ''),
+        'city': request.form.get('from_city', session.get('user_city', '')),
+        'state': request.form.get('from_state', session.get('user_state', '')),
+        'zip': request.form.get('from_zip', session.get('user_zip', '')),
+    }
+
+    result = mail_letter_via_docupost(
+        pdf_url=session.get('final_pdf_url'),
+        recipient=recipient,
+        sender=sender,
+    )
+
+    if result.get('success'):
+        flash("Your letter has been sent!", "success")
+        return redirect(url_for('disputes.final_review'))
+    else:
+        flash(f"DocuPost error: {result.get('error')}", "error")
+        return redirect(url_for('disputes.mail_letter'))
+
+
+@disputes_bp.route('/convert-pdf', methods=['POST'])
+def convert_pdf():
+    letter_text = request.form.get('letter', '').strip()
+    if not letter_text:
+        return "Letter content is missing.", 400
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    os.makedirs(upload_folder, exist_ok=True)
+
+    # Generate letter PDF
+    letter_pdf_path = letter_to_pdf(letter_text, os.path.join(upload_folder, 'letter.pdf'))
+
+    # Convert uploaded supporting docs to PDF
+    pdf_paths = [letter_pdf_path]
+    for field in ('id_file', 'ssn_file', 'utility_file'):
+        file = request.files.get(field)
+        if not file or not file.filename:
+            continue
+
+        filename = secure_filename(file.filename)
+        raw_path = os.path.join(upload_folder, filename)
+        file.save(raw_path)
+        ext = filename.rsplit('.', 1)[-1].lower()
+
+        if ext in ('png', 'jpg', 'jpeg'):
+            img_pdf = image_to_pdf(raw_path, field_type=field)
+            pdf_paths.append(img_pdf)
+        elif ext == 'pdf':
+            pdf_paths.append(raw_path)
+
+    # Merge into DisputePackage
+    final_pdf = merge_dispute_package(pdf_paths, os.path.join(upload_folder, 'DisputePackage.pdf'))
+
+    return send_file(
+        final_pdf,
+        as_attachment=True,
+        download_name='DisputePackage.pdf',
+        mimetype='application/pdf'
+    )
+
+
+# ─── Dispute Folder Routes ───
+
+@disputes_bp.route('/dispute-folder')
+@login_required
+def dispute_folder():
+    logs = DailyLogEntry.query.filter_by(user_id=current_user.id).order_by(DailyLogEntry.timestamp.desc()).all()
+    letters = MailedLetter.query.filter_by(user_id=current_user.id).order_by(MailedLetter.created_at.desc()).all()
+    docs = Correspondence.query.filter_by(user_id=current_user.id).order_by(Correspondence.uploaded_at.desc()).all()
+    return render_template('dispute_folder.html', logs=logs, letters=letters, docs=docs)
+
+
+@disputes_bp.route('/add-log', methods=['GET', 'POST'])
+@login_required
+def add_log():
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        content = request.form.get('content', '').strip()
+        if not title or not content:
+            flash('Please fill out both title and content', 'error')
+            return redirect(url_for('disputes.add_log'))
+
+        entry = DailyLogEntry(user_id=current_user.id, description=f"{title}: {content}")
+        db.session.add(entry)
+        db.session.commit()
+
+        flash('Logged your entry!', 'success')
+        return redirect(url_for('disputes.dispute_folder'))
+
+    return render_template('add_log.html')
+
+
+@disputes_bp.route('/add-letter', methods=['GET', 'POST'])
+@login_required
+def add_letter():
+    if request.method == 'POST':
+        letter_text = request.form['letter_text'].strip()
+        if not letter_text:
+            flash("Letter text is required.", "error")
+            return redirect(url_for('disputes.add_letter'))
+
+        new = MailedLetter(user_id=current_user.id, letter_text=letter_text)
+        db.session.add(new)
+        db.session.commit()
+        flash("Mailed letter recorded.", "success")
+        return redirect(url_for('disputes.dispute_folder'))
+
+    return render_template('add_letter.html')
+
+
+@disputes_bp.route('/upload-doc', methods=['GET', 'POST'])
+@login_required
+def upload_doc():
+    if request.method == 'POST':
+        file = request.files.get('file')
+        if not file or file.filename == '':
+            flash("Please choose a file to upload.", "error")
+            return redirect(url_for('disputes.upload_doc'))
+
+        filename = secure_filename(file.filename)
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        filepath = os.path.join(upload_folder, filename)
+        file.save(filepath)
+
+        doc = Correspondence(
+            user_id=current_user.id,
+            client_id=0,
+            filename=filename,
+            file_url=filepath,
+            description=request.form.get('description', '').strip()
+        )
+        db.session.add(doc)
+        db.session.commit()
+
+        flash("Document uploaded.", "success")
+        return redirect(url_for('disputes.dispute_folder'))
+
+    return render_template('upload_doc.html')
+
+
+# ─── Report Analyzer ───
+
+@disputes_bp.route('/report-analyzer', methods=['GET', 'POST'])
+@login_required
+def report_analyzer():
+    if request.method == 'POST':
+        upload = request.files.get('credit_report')
+        if not upload or upload.filename == "":
+            session['intake'] = {
+                'first_name': request.form['first_name'],
+                'last_name': request.form['last_name'],
+                'phone': request.form['phone'],
+                'email': request.form['email']
+            }
+            return render_template('upload_pdf_analyzer.html', **session['intake'])
+
+        filename = secure_filename(upload.filename)
+        path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+
+        try:
+            upload.save(path)
+            if os.path.getsize(path) == 0:
+                raise ValueError("Uploaded file is empty.")
+        except Exception as e:
+            flash(f"File upload error: {e}", "error")
+            return render_template('upload_pdf_analyzer.html', **session.get('intake', {}))
+
+        try:
+            analysis = run_report_analysis(path)
+        except Exception as e:
+            if os.path.exists(path):
+                os.remove(path)
+            flash("AI error: failed to analyze report. Try another report.", "error")
+            return render_template('upload_pdf_analyzer.html', **session.get('intake', {}))
+
+        if os.path.exists(path):
+            os.remove(path)
+
+        intake = session.get('intake', {})
+        return render_template(
+            'analysis_results.html',
+            user_name=f"{intake.get('first_name', '')} {intake.get('last_name', '')}".strip(),
+            **analysis,
+            **intake
+        )
+
+    session.pop('intake', None)
+    return render_template('report_analyzer.html')
+
+
+@disputes_bp.route('/funding-sequencer')
+@login_required
+def funding_sequencer():
+    return render_template('funding_sequencer.html')

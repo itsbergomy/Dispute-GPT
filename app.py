@@ -1,36 +1,14 @@
-import os
-import subprocess
-from flask import Flask, request, render_template
-from werkzeug.utils import secure_filename
+"""
+Application entry point.
+Uses the app factory from config.py to create and run the Flask application.
+"""
 
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'pdf'}
+from config import create_app
 
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        file = request.files.get('file')
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(save_path)
-
-            process = subprocess.Popen(
-                ['python', 'cli.py', '--mode', 'dispute', '--pdf_path', save_path],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True
-            )
-            output, _ = process.communicate()
-            return render_template('result.html', output=output)
-    return render_template('index.html')
+app = create_app()
 
 if __name__ == '__main__':
+    with app.app_context():
+        from models import db
+        db.create_all()
     app.run(debug=True)
