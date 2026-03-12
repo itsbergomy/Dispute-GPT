@@ -60,6 +60,25 @@ def create_app():
             cursor.execute('PRAGMA journal_mode=WAL')
             cursor.close()
 
+        # Auto-add new columns to existing SQLite tables (lightweight migration)
+        db.create_all()
+        with db.engine.connect() as conn:
+            from sqlalchemy import text, inspect
+            inspector = inspect(db.engine)
+            if 'client_dispute_letters' in inspector.get_table_names():
+                existing = [c['name'] for c in inspector.get_columns('client_dispute_letters')]
+                new_cols = {
+                    'docupost_letter_id': 'VARCHAR(100)',
+                    'docupost_cost': 'FLOAT',
+                    'delivery_status': 'VARCHAR(50)',
+                    'mailed_at': 'DATETIME',
+                    'pdf_url': 'VARCHAR(500)',
+                }
+                for col_name, col_type in new_cols.items():
+                    if col_name not in existing:
+                        conn.execute(text(f'ALTER TABLE client_dispute_letters ADD COLUMN {col_name} {col_type}'))
+                conn.commit()
+
     mail.init_app(app)
     login_manager.init_app(app)
 

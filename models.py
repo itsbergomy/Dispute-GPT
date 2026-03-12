@@ -120,6 +120,12 @@ class ClientDisputeLetter(db.Model):
     letter_text = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(50), default='Draft')  # Draft / Approved / Sent
     template_name = db.Column(db.String(150), nullable=True)
+    pdf_url = db.Column(db.String(500), nullable=True)
+    # DocuPost tracking
+    docupost_letter_id = db.Column(db.String(100), nullable=True)
+    docupost_cost = db.Column(db.Float, nullable=True)
+    delivery_status = db.Column(db.String(50), nullable=True)  # queued / processing / in_transit / delivered / error
+    mailed_at = db.Column(db.DateTime, nullable=True)
     client = db.relationship('Client', backref='letters')
 
 class WorkflowSetting(db.Model):

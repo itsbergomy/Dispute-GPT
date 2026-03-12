@@ -304,6 +304,9 @@ def get_pipeline_status(pipeline_id):
                 'mailed_at': a.mailed_at.isoformat() if a.mailed_at else None,
                 'letter_id': a.letter_id,
                 'letter_status': a.letter.status if a.letter else None,
+                'docupost_letter_id': a.letter.docupost_letter_id if a.letter else None,
+                'docupost_cost': a.letter.docupost_cost if a.letter else None,
+                'delivery_status': a.letter.delivery_status if a.letter else None,
             }
             for a in accounts
         ],
@@ -709,9 +712,19 @@ def handle_delivery(pipeline):
             account.mailed_at = datetime.utcnow()
             account.letter.status = 'Sent'
             account.letter.pdf_url = f"/static/uploads/{client.id}/packages/{package_filename}"
+            account.letter.mailed_at = datetime.utcnow()
+            account.letter.delivery_status = 'queued'
+            # Store DocuPost tracking info
+            if result.get('letter_id'):
+                account.letter.docupost_letter_id = result['letter_id']
+                logger.info(f"DocuPost letter_id: {result['letter_id']}")
+            if result.get('cost'):
+                account.letter.docupost_cost = result['cost']
+                logger.info(f"DocuPost cost: ${result['cost']}")
             sent_count += 1
         else:
             logger.warning(f"Mail failed for account {account.account_number}: {result.get('error')}")
+            account.letter.delivery_status = 'error'
             fail_count += 1
 
         db.session.commit()
