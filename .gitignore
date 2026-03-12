@@ -1,10 +1,30 @@
+# Secrets
 .env
-autoCR.py
-convertjson.py
-experian markus.pdf
-Finetune GPT3.jsonl
-Finetune GPT3.txt
-finetune.py
-formatting.py
-synthetic.py
 
+# Local databases
+instance/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# User uploads (local data)
+static/uploads/
+
+# IDE / dev tooling
+.claude/
+.vscode/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Playwright browser data
+playwright_user_data/
+
+# Legacy artifacts (no longer in repo)
+cfpb_complaint_flow.json
+cfpb-auth.json
+cfpb-auth.json.bak
