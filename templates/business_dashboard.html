@@ -10,6 +10,27 @@
     <p class="text-[var(--text-secondary)] mt-1">Here's what's happening across your clients.</p>
   </div>
 
+  <!-- ═══ AI Agent Widget ═══ -->
+  <div class="flex justify-end glass-animate-in" style="animation-delay:.1s;margin-bottom:-1rem;">
+    <div class="glass-agent-bar flex items-center gap-2.5" style="padding:0.45rem 0.75rem 0.45rem 0.85rem;">
+      <span style="font-size:0.85rem;">&#x1F916;</span>
+      <select id="agent-client-select" class="glass-input glass-select text-xs !py-1 !px-2 !pr-6 !rounded-lg !border-0" style="width:auto;min-width:120px;max-width:150px;background-color:rgba(255,255,255,0.06);font-size:0.7rem;">
+        <option value="">Client</option>
+        {% for c in clients %}
+          <option value="{{ c.id }}" data-has-pdf="{{ 'yes' if c.pdf_filename else 'no' }}">
+            {{ c.first_name }} {{ c.last_name }}
+          </option>
+        {% endfor %}
+      </select>
+      <div id="agentToggle"
+           class="glass-toggle glass-toggle--blue flex-shrink-0"
+           onclick="toggleAgent(this)"
+           role="switch" aria-checked="false" tabindex="0"
+           title="Start Agent"
+           style="width:38px;height:20px;border-radius:10px;display:flex;align-items:center;"></div>
+    </div>
+  </div>
+
   <!-- ═══ 4 Metric Cards ═══ -->
   <div class="grid gap-5 grid-cols-2 lg:grid-cols-4 glass-stagger">
 
@@ -39,7 +60,7 @@
   <div class="grid gap-6 grid-cols-1 lg:grid-cols-5">
 
     <!-- LEFT — Client List (3/5) -->
-    <div class="lg:col-span-3 glass-card glass-card--heavy glass-p space-y-4 glass-animate-in">
+    <div class="lg:col-span-3 glass-metric-panel glass-p space-y-4 glass-animate-in">
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-bold">Clients</h2>
         <button id="addClientBtn"
@@ -64,23 +85,23 @@
         {% if clients %}
           {% for c in clients %}
             <a href="{{ url_for('business.view_client', client_id=c.id) }}"
-               class="client-row glass-card glass-card--light glass-p-sm flex justify-between items-center hover:scale-[1.01] transition-transform"
+               class="client-row glass-list-item flex justify-between items-center"
                data-name="{{ c.first_name }} {{ c.last_name }}">
               <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold
-                            bg-gradient-to-br from-blue-400/30 to-purple-400/30 text-[var(--text-primary)]">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
+                     style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.25);color:var(--text-primary);">
                   {{ c.first_name[0] }}{{ c.last_name[0] }}
                 </div>
                 <div>
                   <p class="font-semibold text-sm">{{ c.first_name }} {{ c.last_name }}</p>
-                  <p class="text-xs text-[var(--text-tertiary)]">{{ c.email }}</p>
+                  <p class="text-xs" style="color:var(--text-tertiary);">{{ c.email }}</p>
                 </div>
               </div>
-              <span class="text-xs text-[var(--text-tertiary)]">View &rarr;</span>
+              <span class="text-xs" style="color:var(--text-tertiary);">View &rarr;</span>
             </a>
           {% endfor %}
         {% else %}
-          <div class="glass-card glass-card--light glass-p text-center text-[var(--text-secondary)]">
+          <div class="py-8 text-center text-sm" style="color:var(--text-secondary);">
             No clients yet. Click "+ Add Client" to get started.
           </div>
         {% endif %}
@@ -88,13 +109,13 @@
     </div>
 
     <!-- RIGHT — Pipeline Activity (2/5) -->
-    <div class="lg:col-span-2 glass-card glass-card--heavy glass-p space-y-4 glass-animate-in" style="animation-delay:.15s">
+    <div class="lg:col-span-2 glass-metric-panel glass-p space-y-4 glass-animate-in" style="animation-delay:.15s">
       <h2 class="text-xl font-bold">Pipeline Activity</h2>
 
       <div class="space-y-3 max-h-[480px] overflow-y-auto pr-1">
         {% if pipelines %}
           {% for p in pipelines %}
-            <div class="glass-card glass-card--light glass-p-sm space-y-1">
+            <div class="glass-list-item space-y-1">
               <div class="flex justify-between items-center">
                 <span class="font-semibold text-sm">
                   {% if p.client %}
@@ -103,24 +124,33 @@
                     Pipeline #{{ p.id }}
                   {% endif %}
                 </span>
-                {% set state_colors = {
-                  'completed': 'glass-badge--success',
-                  'failed': 'glass-badge--danger',
-                  'awaiting_response': 'glass-badge--warning',
-                  'review': 'glass-badge--info'
-                } %}
-                <span class="glass-badge {{ state_colors.get(p.state, 'glass-badge--neutral') }}">
-                  {{ p.state.replace('_', ' ') }}
-                </span>
+                <div class="flex items-center gap-2">
+                  {% set state_colors = {
+                    'completed': 'glass-badge--success',
+                    'failed': 'glass-badge--danger',
+                    'awaiting_response': 'glass-badge--warning',
+                    'review': 'glass-badge--info'
+                  } %}
+                  <span class="glass-badge {{ state_colors.get(p.state, 'glass-badge--neutral') }}">
+                    {{ p.state.replace('_', ' ') }}
+                  </span>
+                  <button onclick="deletePipeline({{ p.id }}, this)" title="Delete"
+                          class="cursor-pointer opacity-30 hover:opacity-100 transition-opacity"
+                          style="color:var(--text-tertiary);">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <p class="text-xs text-[var(--text-tertiary)]">
+              <p class="text-xs" style="color:var(--text-tertiary);">
                 Round {{ p.current_round }} of 5
                 &middot; Started {{ p.created_at.strftime('%b %d') }}
               </p>
             </div>
           {% endfor %}
         {% else %}
-          <div class="glass-card glass-card--light glass-p text-center text-[var(--text-secondary)] text-sm">
+          <div class="py-8 text-center text-sm" style="color:var(--text-secondary);">
             No pipelines yet. Start one from a client's page.
           </div>
         {% endif %}
@@ -129,43 +159,111 @@
 
   </div>
 
-  <!-- ═══ AI Agent Section ═══ -->
-  <div class="glass-card glass-card--heavy glass-p glass-animate-in" style="animation-delay:.25s">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-      <div>
-        <h2 class="text-xl font-bold flex items-center gap-2">
-          <span class="text-2xl">🤖</span> AI Agent
-        </h2>
-        <p class="text-sm text-[var(--text-secondary)] mt-1">
-          Toggle automated dispute workflows per client. When enabled, the agent handles the full dispute lifecycle.
-        </p>
+
+  <!-- ═══ Agent Config Modal ═══ -->
+  <div id="agentConfigModal" class="hidden fixed inset-0 z-50 bg-black/30 backdrop-blur-sm">
+    <div class="absolute inset-0 overflow-y-auto flex items-start justify-center pt-8 pb-8">
+      <div class="glass-card glass-card--heavy rounded-3xl w-full max-w-lg mx-4 glass-animate-in" style="padding:1.5rem;">
+
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h3 class="text-lg font-bold">Configure Agent</h3>
+            <p class="text-xs mt-0.5" style="color:var(--text-tertiary);" id="agentClientName"></p>
+          </div>
+          <button onclick="closeAgentModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-xl font-bold hover:bg-white/15 transition">&times;</button>
+        </div>
+
+        <div id="agentConfigForm">
+          <!-- Mode Selection -->
+          <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Mode</p>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition hover:scale-[1.02]" id="mode-supervised-card">
+              <input type="radio" name="agent_mode" value="supervised" checked class="sr-only" onchange="updateModeUI()">
+              <div class="text-2xl mb-1">&#x1F441;</div>
+              <div class="text-sm font-semibold">Supervised</div>
+              <div class="text-xs" style="color:var(--text-tertiary);">Pauses for your review</div>
+            </label>
+            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition hover:scale-[1.02]" id="mode-fullauto-card">
+              <input type="radio" name="agent_mode" value="full_auto" class="sr-only" onchange="updateModeUI()">
+              <div class="text-2xl mb-1">&#x26A1;</div>
+              <div class="text-sm font-semibold">Full Auto</div>
+              <div class="text-xs" style="color:var(--text-tertiary);">Runs without stopping</div>
+            </label>
+          </div>
+
+          <!-- Full Auto Config (hidden by default) -->
+          <div id="fullAutoConfig" class="hidden space-y-4">
+
+            <!-- Round Packs -->
+            <div>
+              <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Prompt Pack per Round</p>
+              <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold w-16" style="color:var(--text-secondary);">Round 1</span>
+                  <select id="pack-r1" class="glass-select glass-input text-sm flex-1 !py-1.5">
+                    <option value="default">Default</option>
+                    <option value="consumer_law">Consumer Law</option>
+                    <option value="ACDV_response">ACDV Response</option>
+                    <option value="arbitration">Arbitration</option>
+                  </select>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold w-16" style="color:var(--text-secondary);">Round 2</span>
+                  <select id="pack-r2" class="glass-select glass-input text-sm flex-1 !py-1.5">
+                    <option value="default">Default</option>
+                    <option value="consumer_law" selected>Consumer Law</option>
+                    <option value="ACDV_response">ACDV Response</option>
+                    <option value="arbitration">Arbitration</option>
+                  </select>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold w-16" style="color:var(--text-secondary);">Round 3</span>
+                  <select id="pack-r3" class="glass-select glass-input text-sm flex-1 !py-1.5">
+                    <option value="default">Default</option>
+                    <option value="consumer_law">Consumer Law</option>
+                    <option value="ACDV_response" selected>ACDV Response</option>
+                    <option value="arbitration">Arbitration</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Send To -->
+            <div>
+              <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Send Letters To</p>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center" id="sendto-bureaus-card">
+                  <input type="radio" name="send_to" value="bureaus" checked class="sr-only" onchange="updateSendToUI()">
+                  <div class="text-lg">&#x1F3E2;</div>
+                  <div class="text-xs font-semibold">Bureaus</div>
+                </label>
+                <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center" id="sendto-creditors-card">
+                  <input type="radio" name="send_to" value="creditors" class="sr-only" onchange="updateSendToUI()">
+                  <div class="text-lg">&#x1F4BC;</div>
+                  <div class="text-xs font-semibold">Creditors</div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Creditor Addresses (hidden by default) -->
+            <div id="creditorSection" class="hidden">
+              <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Creditor Addresses</p>
+              <div id="creditorRows" class="space-y-2"></div>
+              <button type="button" onclick="addCreditorRow()"
+                      class="glass-btn glass-btn--secondary glass-btn--pill text-xs px-3 py-1 mt-2">
+                + Add Creditor
+              </button>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <button type="button" id="agentSubmitBtn" onclick="submitAgentConfig()"
+                  class="glass-btn glass-btn--primary glass-btn--full rounded-2xl mt-5">
+            Start Pipeline
+          </button>
+          <div id="agentError" class="hidden mt-2 text-sm text-center" style="color:#ff3b30;"></div>
+        </div>
       </div>
-
-      <form method="POST" action="{{ url_for('business.toggle_workflow') }}"
-            id="agentForm" class="flex items-center gap-4 flex-shrink-0">
-
-        <select name="client_id" id="agent-client-select"
-                class="glass-input glass-select w-48 text-sm !py-2">
-          <option value="">Select Client</option>
-          {% for c in clients %}
-            <option value="{{ c.id }}"
-              {% if selected_client and selected_client.id == c.id %}selected{% endif %}>
-              {{ c.first_name }} {{ c.last_name }}
-            </option>
-          {% endfor %}
-        </select>
-
-        <input type="hidden" name="workflow_key" value="cfpb_collection">
-        <input type="hidden" name="enabled" id="agent-enabled" value="{{ 1 if workflow_enabled else 0 }}">
-
-        <!-- Pure CSS toggle — no extra dot span -->
-        <button type="button" id="agent-toggle"
-                class="glass-toggle {{ 'glass-toggle--active' if workflow_enabled else '' }}"
-                aria-label="Toggle workflow">
-        </button>
-
-        <button type="submit" id="agent-submit" class="hidden"></button>
-      </form>
     </div>
   </div>
 
@@ -304,25 +402,6 @@
     });
   }
 
-  // ── AI Agent toggle (pure CSS glass-toggle) ──
-  const agentToggle  = document.getElementById('agent-toggle');
-  const agentEnabled = document.getElementById('agent-enabled');
-  const agentSelect  = document.getElementById('agent-client-select');
-  const agentSubmit  = document.getElementById('agent-submit');
-
-  if (agentToggle) {
-    agentToggle.addEventListener('click', () => {
-      if (!agentSelect.value) {
-        alert('Please select a client first.');
-        return;
-      }
-      const isOn = agentEnabled.value === '1';
-      agentToggle.classList.toggle('glass-toggle--active', !isOn);
-      agentEnabled.value = isOn ? '0' : '1';
-      agentSubmit.click();
-    });
-  }
-
   // ── Add Client Modal ──
   const addBtn = document.getElementById('addClientBtn');
   if (addBtn) {
@@ -334,6 +413,169 @@
   function closeModal() {
     const m = document.getElementById('addClientModal');
     if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+  }
+
+  // ── Agent Config Modal ──
+  let selectedClientId = null;
+
+  function toggleAgent(toggle) {
+    const sel = document.getElementById('agent-client-select');
+    if (!sel.value) { alert('Please select a client first.'); return; }
+    const opt = sel.options[sel.selectedIndex];
+    if (opt.dataset.hasPdf === 'no') {
+      alert('This client has no credit report uploaded. Upload a PDF first.');
+      return;
+    }
+    // Activate the toggle visually
+    toggle.classList.add('glass-toggle--active');
+    selectedClientId = parseInt(sel.value);
+    document.getElementById('agentClientName').textContent = opt.textContent.trim();
+    document.getElementById('agentError').classList.add('hidden');
+    const m = document.getElementById('agentConfigModal');
+    m.classList.remove('hidden'); m.classList.add('flex');
+  }
+
+  function closeAgentModal() {
+    const m = document.getElementById('agentConfigModal');
+    m.classList.add('hidden'); m.classList.remove('flex');
+    // Reset toggle if pipeline wasn't started
+    const toggle = document.getElementById('agentToggle');
+    if (toggle) toggle.classList.remove('glass-toggle--active');
+  }
+
+  function updateModeUI() {
+    const mode = document.querySelector('input[name="agent_mode"]:checked').value;
+    const autoSection = document.getElementById('fullAutoConfig');
+    const supCard = document.getElementById('mode-supervised-card');
+    const autoCard = document.getElementById('mode-fullauto-card');
+    autoSection.classList.toggle('hidden', mode !== 'full_auto');
+    supCard.style.borderColor = mode === 'supervised' ? 'var(--accent)' : '';
+    supCard.style.borderWidth = mode === 'supervised' ? '2px' : '';
+    autoCard.style.borderColor = mode === 'full_auto' ? 'var(--accent)' : '';
+    autoCard.style.borderWidth = mode === 'full_auto' ? '2px' : '';
+  }
+
+  function updateSendToUI() {
+    const sendTo = document.querySelector('input[name="send_to"]:checked').value;
+    document.getElementById('creditorSection').classList.toggle('hidden', sendTo !== 'creditors');
+    document.getElementById('sendto-bureaus-card').style.borderColor = sendTo === 'bureaus' ? 'var(--accent)' : '';
+    document.getElementById('sendto-bureaus-card').style.borderWidth = sendTo === 'bureaus' ? '2px' : '';
+    document.getElementById('sendto-creditors-card').style.borderColor = sendTo === 'creditors' ? 'var(--accent)' : '';
+    document.getElementById('sendto-creditors-card').style.borderWidth = sendTo === 'creditors' ? '2px' : '';
+    if (sendTo === 'creditors' && document.getElementById('creditorRows').children.length === 0) {
+      addCreditorRow();
+    }
+  }
+
+  function addCreditorRow() {
+    const container = document.getElementById('creditorRows');
+    const idx = container.children.length;
+    const row = document.createElement('div');
+    row.className = 'glass-card glass-card--light rounded-xl p-3 space-y-2';
+    row.innerHTML = `
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-semibold" style="color:var(--text-secondary);">Creditor ${idx + 1}</span>
+        <button type="button" onclick="this.closest('.glass-card').remove()" class="text-xs" style="color:#ff3b30;">Remove</button>
+      </div>
+      <input class="glass-input text-sm cred-name" placeholder="Creditor Name" required>
+      <input class="glass-input text-sm cred-addr" placeholder="Street Address" required>
+      <div class="grid grid-cols-3 gap-2">
+        <input class="glass-input text-sm cred-city" placeholder="City" required>
+        <input class="glass-input text-sm cred-state" placeholder="State" required>
+        <input class="glass-input text-sm cred-zip" placeholder="ZIP" required>
+      </div>
+    `;
+    container.appendChild(row);
+  }
+
+  async function submitAgentConfig() {
+    const errEl = document.getElementById('agentError');
+    const btn = document.getElementById('agentSubmitBtn');
+    errEl.classList.add('hidden');
+
+    const mode = document.querySelector('input[name="agent_mode"]:checked').value;
+
+    const config = {
+      mode: mode,
+      max_rounds: 3,
+      round_packs: [],
+      send_to: 'bureaus',
+      creditor_addresses: [],
+    };
+
+    if (mode === 'full_auto') {
+      config.round_packs = [
+        document.getElementById('pack-r1').value,
+        document.getElementById('pack-r2').value,
+        document.getElementById('pack-r3').value,
+      ];
+      config.send_to = document.querySelector('input[name="send_to"]:checked').value;
+
+      if (config.send_to === 'creditors') {
+        const rows = document.querySelectorAll('#creditorRows > div');
+        if (rows.length === 0) {
+          errEl.textContent = 'Add at least one creditor address.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        for (const row of rows) {
+          const name = row.querySelector('.cred-name').value.trim();
+          const addr = row.querySelector('.cred-addr').value.trim();
+          const city = row.querySelector('.cred-city').value.trim();
+          const state = row.querySelector('.cred-state').value.trim();
+          const zip = row.querySelector('.cred-zip').value.trim();
+          if (!name || !addr || !city || !state || !zip) {
+            errEl.textContent = 'All creditor fields are required.';
+            errEl.classList.remove('hidden');
+            return;
+          }
+          config.creditor_addresses.push({ name, address1: addr, city, state, zip });
+        }
+      }
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Starting...';
+
+    try {
+      const res = await fetch('/api/pipeline/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: selectedClientId, config }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to start pipeline');
+      }
+      // Success — redirect to client view
+      window.location.href = '/clients/' + selectedClientId;
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Start Pipeline';
+    }
+  }
+
+  // Initialize mode UI
+  updateModeUI();
+  updateSendToUI();
+
+  // ── Delete pipeline ──
+  function deletePipeline(id, btn) {
+    if (!confirm('Delete this pipeline and all its data?')) return;
+    fetch('/api/pipeline/' + id + '/delete', {method:'DELETE'})
+      .then(r => r.json())
+      .then(d => {
+        if (d.message) {
+          const row = btn.closest('.glass-list-item');
+          if (row) row.remove();
+        } else {
+          alert(d.error || 'Error deleting pipeline');
+        }
+      })
+      .catch(err => alert('Error: ' + err.message));
   }
 </script>
 {% endblock %}

@@ -160,11 +160,17 @@ def view_client(client_id):
         DisputePipeline.state.notin_(['completed', 'failed']),
     ).first()
 
+    pipeline_status = None
+    if active_pipeline:
+        from services.pipeline_engine import get_pipeline_status
+        pipeline_status = get_pipeline_status(active_pipeline.id)
+
     return render_template("view_client.html",
                            client=client,
                            client_parsed_accounts=client_parsed_accounts,
                            workflow_settings=workflow_settings,
-                           active_pipeline=active_pipeline)
+                           active_pipeline=active_pipeline,
+                           pipeline_status=pipeline_status)
 
 
 @business_bp.route('/clients/<int:client_id>/upload-correspondence', methods=['POST'])
@@ -329,6 +335,23 @@ def update_recommendations(analysis_id):
         flash(f"Error updating recommendations: {str(e)}", "error")
 
     return redirect(url_for("business.view_client", client_id=client.id))
+
+
+@business_bp.route('/analyses/<int:analysis_id>/delete', methods=['POST'])
+@login_required
+def delete_analysis(analysis_id):
+    """Delete an analysis record."""
+    analysis = ClientReportAnalysis.query.get_or_404(analysis_id)
+    client = Client.query.get_or_404(analysis.client_id)
+
+    if client.business_user_id != current_user.id:
+        abort(403)
+
+    client_id = client.id
+    db.session.delete(analysis)
+    db.session.commit()
+    flash("Analysis deleted.", "success")
+    return redirect(url_for("business.view_client", client_id=client_id))
 
 
 @business_bp.route('/analyses/<int:analysis_id>/send-email', methods=['POST'])

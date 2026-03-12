@@ -31,17 +31,23 @@
 
       <!-- Actions Row -->
       <div class="flex flex-wrap items-center gap-2">
-        <!-- CFPB Toggle -->
-        <form method="POST" action="{{ url_for('business.toggle_workflow') }}" class="flex items-center gap-2">
-          <input type="hidden" name="workflow_key" value="cfpb_collection">
-          <input type="hidden" name="enabled" value="{{ 0 if workflow_settings.get('cfpb_collection') else 1 }}">
-          <input type="hidden" name="client_id" value="{{ client.id }}">
-          <span class="text-xs font-medium" style="color:var(--text-secondary);">CFPB Auto</span>
+        <form id="runAnalyzerForm" method="POST" action="{{ url_for('business.run_analysis_for_client', client_id=client.id) }}" style="display:inline;">
+          <button id="runAnalyzerBtn" type="submit"
+                  class="glass-btn glass-btn--pill px-4 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
+                  style="background:rgba(255,255,255,0.12);">
+            <svg class="h-3.5 w-3.5 hidden animate-spin" id="runAnalyzerSpin" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 008 12H4z"/>
+            </svg>
+            <span id="runAnalyzerText">&#x1F50D; Run Analyzer</span>
+          </button>
+        </form>
+
+        <form method="POST" action="{{ url_for('business.extract_for_disputegpt', client_id=client.id) }}" style="display:inline;">
           <button type="submit"
-                  class="relative w-12 h-6 rounded-full transition-colors duration-200"
-                  style="background:{{ 'var(--accent)' if workflow_settings.get('cfpb_collection') else 'rgba(255,255,255,0.2)' }};">
-            <span class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200
-                         {{ 'left-6' if workflow_settings.get('cfpb_collection') else 'left-0.5' }}"></span>
+                  class="glass-btn glass-btn--pill px-4 py-1.5 text-xs font-semibold"
+                  style="background:rgba(255,255,255,0.12);">
+            &#x1F4CB; Extract Accounts
           </button>
         </form>
 
@@ -54,55 +60,162 @@
     </div>
   </div>
 
-  <!-- ═══════════════ TOP ACTIONS BAR ═══════════════ -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-    <form id="runAnalyzerForm" method="POST" action="{{ url_for('business.run_analysis_for_client', client_id=client.id) }}">
-      <button id="runAnalyzerBtn" type="submit"
-              class="glass-card glass-card--light rounded-2xl p-4 w-full text-left hover:scale-[1.02] transition-transform cursor-pointer">
-        <div class="text-2xl mb-1">
-          <svg class="h-4 w-4 hidden animate-spin inline" id="runAnalyzerSpin" viewBox="0 0 24 24" fill="none">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 008 12H4z"/>
-          </svg>
-          &#x1F50D;
-        </div>
-        <span id="runAnalyzerText" class="text-sm font-semibold">Run Analyzer</span>
-        <p class="text-xs mt-0.5" style="color:var(--text-tertiary);">AI credit report analysis</p>
-      </button>
-    </form>
+  <!-- ═══════════════ PIPELINE STATUS ═══════════════ -->
+  {% if pipeline_status %}
+  <div class="glass-card glass-card--heavy rounded-3xl p-6 mb-8" id="pipelineCard">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-bold flex items-center gap-2">
+        &#x1F916; Pipeline Active
+        <span class="glass-badge glass-badge--info text-xs">{{ pipeline_status.mode|title }}</span>
+        <span class="glass-badge glass-badge--neutral text-xs">Round {{ pipeline_status.round_number }} of {{ pipeline_status.max_rounds }}</span>
+      </h2>
+      <form method="POST" action="/api/pipeline/{{ pipeline_status.id }}/cancel" id="cancelPipelineForm">
+        <button type="button" onclick="if(confirm('Cancel this pipeline?')){fetch('/api/pipeline/{{ pipeline_status.id }}/cancel',{method:'POST'}).then(()=>location.reload())}"
+                class="text-xs px-3 py-1 rounded-full font-semibold transition"
+                style="background:rgba(239,68,68,0.15);color:#ef4444;">
+          Cancel
+        </button>
+      </form>
+    </div>
 
-    <form method="POST" action="{{ url_for('business.extract_for_disputegpt', client_id=client.id) }}">
-      <button type="submit"
-              class="glass-card glass-card--light rounded-2xl p-4 w-full text-left hover:scale-[1.02] transition-transform cursor-pointer">
-        <div class="text-2xl mb-1">&#x1F4CB;</div>
-        <span class="text-sm font-semibold">Extract Accounts</span>
-        <p class="text-xs mt-0.5" style="color:var(--text-tertiary);">Pull accounts from report</p>
-      </button>
-    </form>
+    <!-- State Stepper -->
+    <div class="flex items-center gap-1 mb-4 overflow-x-auto pb-1" id="stateStepper">
+      {% set states = ['intake', 'analysis', 'strategy', 'generation', 'review', 'delivery', 'awaiting_response', 'completed'] %}
+      {% set state_labels = {'intake':'Intake', 'analysis':'Analysis', 'strategy':'Strategy', 'generation':'Letters', 'review':'Review', 'delivery':'Delivery', 'awaiting_response':'Awaiting', 'completed':'Done'} %}
+      {% set current = pipeline_status.state %}
+      {% set current_idx = states.index(current) if current in states else -1 %}
+      {% for s in states %}
+        {% if s == current %}
+          <div class="flex items-center gap-1">
+            <div class="px-3 py-1 rounded-full text-xs font-bold" style="background:var(--accent);color:#fff;">
+              {{ state_labels[s] }}
+            </div>
+          </div>
+        {% elif current_idx >= 0 and loop.index0 < current_idx %}
+          <div class="flex items-center gap-1">
+            <div class="px-2 py-1 rounded-full text-xs font-medium" style="background:rgba(52,199,89,0.2);color:#248a3d;">
+              &#x2713; {{ state_labels[s] }}
+            </div>
+          </div>
+        {% else %}
+          <div class="flex items-center gap-1">
+            <div class="px-2 py-1 rounded-full text-xs" style="color:var(--text-tertiary);">
+              {{ state_labels[s] }}
+            </div>
+          </div>
+        {% endif %}
+        {% if not loop.last %}
+          <span style="color:var(--text-tertiary);" class="text-xs">&rarr;</span>
+        {% endif %}
+      {% endfor %}
+    </div>
 
-    <form method="POST" action="{{ url_for('business.mail_analysis_to_client', client_id=client.id) }}">
-      <button type="submit"
-              class="glass-card glass-card--light rounded-2xl p-4 w-full text-left hover:scale-[1.02] transition-transform cursor-pointer">
-        <div class="text-2xl mb-1">&#x1F4E7;</div>
-        <span class="text-sm font-semibold">Email Analysis</span>
-        <p class="text-xs mt-0.5" style="color:var(--text-tertiary);">Send report to client</p>
-      </button>
-    </form>
-
-    {% set cfwf = workflow_settings.get('cfpb_collection') %}
-    {% if cfwf %}
-    <form method="POST" action="{{ url_for('business.toggle_workflow') }}">
-      <input type="hidden" name="workflow_key" value="cfpb_collection">
-      <input type="hidden" name="client_id" value="{{ client.id }}">
-      <input type="hidden" name="enabled" value="1">
-      <button type="submit"
-              class="glass-card glass-card--light rounded-2xl p-4 w-full text-left hover:scale-[1.02] transition-transform cursor-pointer">
-        <div class="text-2xl mb-1">&#x1F680;</div>
-        <span class="text-sm font-semibold">CFPB Flow</span>
-        <p class="text-xs mt-0.5" style="color:var(--text-tertiary);">Run complaint pipeline</p>
-      </button>
-    </form>
+    <!-- Error message -->
+    {% if pipeline_status.state == 'failed' and pipeline_status.error_message %}
+    <div class="glass-flash glass-flash--error mb-3 text-sm">
+      {{ pipeline_status.error_message }}
+    </div>
     {% endif %}
+
+    <!-- Accounts being disputed -->
+    {% if pipeline_status.accounts %}
+    <div class="mb-3">
+      <p class="text-xs font-semibold mb-2" style="color:var(--text-secondary);">Accounts in Dispute</p>
+      <div>
+        {% for a in pipeline_status.accounts if a.round_number == pipeline_status.round_number %}
+        <div class="glass-list-item flex items-center justify-between text-sm">
+          <div class="flex items-center gap-2">
+            {% if a.letter_id and pipeline_status.state == 'review' %}
+            <button onclick="openLetterEditor({{ a.letter_id }}, '{{ a.account_name }} — {{ a.bureau }}')"
+                    class="hover:scale-110 transition-transform cursor-pointer" title="View / Edit Letter"
+                    style="color:var(--text-secondary);">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </button>
+            {% endif %}
+            <span class="font-medium">{{ a.account_name }}</span>
+            <span class="text-xs" style="color:var(--text-tertiary);">{{ a.account_number }}</span>
+            <span class="text-xs" style="color:var(--text-tertiary);">· {{ a.bureau }}</span>
+          </div>
+          <div>
+            {% if a.outcome == 'pending' %}
+              <span class="glass-badge glass-badge--warning text-xs">Pending</span>
+            {% elif a.outcome == 'removed' %}
+              <span class="glass-badge glass-badge--success text-xs">Removed</span>
+            {% elif a.outcome == 'updated' %}
+              <span class="glass-badge glass-badge--success text-xs">Updated</span>
+            {% elif a.outcome == 'verified' %}
+              <span class="glass-badge glass-badge--danger text-xs">Verified</span>
+            {% elif a.outcome == 'no_response' %}
+              <span class="glass-badge glass-badge--warning text-xs">No Response</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Review Action -->
+    {% if pipeline_status.state == 'review' and pipeline_status.mode == 'supervised' %}
+    <div class="flex gap-3">
+      <button onclick="fetch('/api/pipeline/{{ pipeline_status.id }}/approve',{method:'POST'}).then(r=>r.json()).then(d=>{if(d.message)location.reload();else alert(d.error||'Error')})"
+              class="glass-btn glass-btn--primary glass-btn--pill text-sm px-6 py-2">
+        &#x2705; Approve Letters &amp; Send
+      </button>
+    </div>
+    {% endif %}
+
+    <!-- Awaiting Response Action -->
+    {% if pipeline_status.state == 'awaiting_response' %}
+    <div class="glass-card glass-card--light rounded-xl p-4">
+      <p class="text-sm font-semibold mb-2">Upload Bureau Response</p>
+      <p class="text-xs mb-3" style="color:var(--text-tertiary);">Upload correspondence received from bureaus/creditors for each account.</p>
+      {% for a in pipeline_status.accounts if a.round_number == pipeline_status.round_number and a.outcome == 'pending' %}
+      <form class="flex items-center gap-2 mb-2" enctype="multipart/form-data"
+            onsubmit="event.preventDefault();const fd=new FormData(this);fetch('/api/pipeline/{{ pipeline_status.id }}/response',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{if(d.all_responded)location.reload();else{this.querySelector('.resp-status').textContent='Saved';this.querySelector('.resp-status').style.color='#248a3d'}})">
+        <span class="text-xs font-medium w-32 truncate">{{ a.account_name }}</span>
+        <input type="hidden" name="account_id" value="{{ a.id }}">
+        <select name="response_type" class="glass-select text-xs !py-1 w-28" required>
+          <option value="">Outcome</option>
+          <option value="removed">Removed</option>
+          <option value="updated">Updated</option>
+          <option value="verified">Verified</option>
+          <option value="no_response">No Response</option>
+        </select>
+        <input type="file" name="response_file" class="glass-input text-xs !py-1 flex-1">
+        <button type="submit" class="glass-btn glass-btn--primary glass-btn--pill text-xs px-3 py-1">Submit</button>
+        <span class="resp-status text-xs"></span>
+      </form>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ═══════════════ LETTER EDITOR MODAL ═══════════════ -->
+  <div id="letterEditorModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
+       style="background:rgba(0,0,0,0.5);backdrop-filter:blur(6px);">
+    <div class="glass-card glass-card--heavy rounded-3xl p-6 w-full max-w-2xl max-h-[85vh] flex flex-col"
+         style="background:var(--glass-bg-heavy);">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="letterEditorTitle" class="text-lg font-bold" style="color:var(--text-primary);">Letter</h3>
+        <button onclick="closeLetterEditor()" class="text-xl cursor-pointer" style="color:var(--text-tertiary);">&times;</button>
+      </div>
+      <textarea id="letterEditorText"
+                class="glass-input flex-1 w-full text-sm font-mono resize-none"
+                style="min-height:350px;line-height:1.6;white-space:pre-wrap;"></textarea>
+      <div class="flex items-center justify-between mt-4">
+        <span id="letterEditorStatus" class="text-xs"></span>
+        <div class="flex gap-2">
+          <button onclick="closeLetterEditor()"
+                  class="glass-btn glass-btn--pill px-4 py-2 text-xs" style="background:rgba(255,255,255,0.1);">Cancel</button>
+          <button onclick="saveLetterEdit()"
+                  class="glass-btn glass-btn--primary glass-btn--pill px-5 py-2 text-sm font-semibold">Save Changes</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -301,7 +414,19 @@
           <div class="glass-card glass-card--heavy rounded-3xl p-5">
             <div class="flex justify-between items-center mb-3">
               <h3 class="text-sm font-bold">Analysis &mdash; {{ analysis.created_at.strftime("%b %d, %Y") }}</h3>
-              <span class="text-xs glass-badge glass-badge--info">{{ data.status_text }}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xs glass-badge glass-badge--info">{{ data.status_text }}</span>
+                <form method="POST" action="{{ url_for('business.delete_analysis', analysis_id=analysis.id) }}"
+                      onsubmit="return confirm('Delete this analysis?');" style="display:inline;">
+                  <button type="submit" title="Delete analysis"
+                          class="cursor-pointer opacity-30 hover:opacity-100 transition-opacity"
+                          style="color:var(--text-tertiary);">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </form>
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2 mb-3">
@@ -413,5 +538,84 @@
       }
     });
   })();
+
+  // ── Letter editor modal ──
+  function openLetterEditor(letterId, title) {
+    const modal = document.getElementById('letterEditorModal');
+    const titleEl = document.getElementById('letterEditorTitle');
+    const textarea = document.getElementById('letterEditorText');
+    const saveBtn = document.getElementById('letterEditorSave');
+    const statusEl = document.getElementById('letterEditorStatus');
+
+    titleEl.textContent = title;
+    textarea.value = 'Loading...';
+    statusEl.textContent = '';
+    modal.classList.remove('hidden');
+    modal.dataset.letterId = letterId;
+
+    fetch('/api/pipeline/letter/' + letterId)
+      .then(r => r.json())
+      .then(data => {
+        textarea.value = data.letter_text || 'No letter text found.';
+      })
+      .catch(err => {
+        textarea.value = 'Error loading letter: ' + err.message;
+      });
+  }
+
+  function closeLetterEditor() {
+    document.getElementById('letterEditorModal').classList.add('hidden');
+  }
+
+  function saveLetterEdit() {
+    const modal = document.getElementById('letterEditorModal');
+    const letterId = modal.dataset.letterId;
+    const textarea = document.getElementById('letterEditorText');
+    const statusEl = document.getElementById('letterEditorStatus');
+
+    statusEl.textContent = 'Saving...';
+    statusEl.style.color = 'var(--text-secondary)';
+
+    fetch('/api/pipeline/letter/' + letterId, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({letter_text: textarea.value})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        statusEl.textContent = data.error;
+        statusEl.style.color = '#ff453a';
+      } else {
+        statusEl.textContent = 'Saved!';
+        statusEl.style.color = '#248a3d';
+        setTimeout(() => { statusEl.textContent = ''; }, 2000);
+      }
+    })
+    .catch(err => {
+      statusEl.textContent = 'Error: ' + err.message;
+      statusEl.style.color = '#ff453a';
+    });
+  }
+
+  // ── Pipeline status polling ──
+  {% if pipeline_status and pipeline_status.state not in ['completed', 'failed', 'review', 'awaiting_response'] %}
+  (function() {
+    const POLL_INTERVAL = 5000;
+    const pipelineId = {{ pipeline_status.id }};
+    let polling = setInterval(async () => {
+      try {
+        const res = await fetch('/api/pipeline/' + pipelineId + '/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        // Reload if state changed
+        if (data.state !== '{{ pipeline_status.state }}') {
+          clearInterval(polling);
+          window.location.reload();
+        }
+      } catch (e) { console.error('Poll error:', e); }
+    }, POLL_INTERVAL);
+  })();
+  {% endif %}
 </script>
 {% endblock %}

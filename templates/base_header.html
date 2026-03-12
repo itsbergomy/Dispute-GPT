@@ -9,6 +9,42 @@
 </head>
 <body class="glass-body">
 
+<!-- SVG Frosted Glass Filter — referenced by backdrop-filter: url(#frosted) -->
+<svg style="position:absolute;width:0;height:0;" aria-hidden="true">
+  <defs>
+    <filter id="frosted" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <!-- Base blur — the main frosted effect -->
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+      <!-- Boost saturation so colors behind the glass stay vibrant -->
+      <feColorMatrix in="blur" type="saturate" values="1.8" result="saturated"/>
+      <!-- Slight brightness lift -->
+      <feComponentTransfer in="saturated" result="bright">
+        <feFuncR type="linear" slope="1.08" intercept="0.02"/>
+        <feFuncG type="linear" slope="1.08" intercept="0.02"/>
+        <feFuncB type="linear" slope="1.08" intercept="0.02"/>
+      </feComponentTransfer>
+      <!-- Specular lighting for that glass shine -->
+      <feSpecularLighting in="blur" surfaceScale="4" specularConstant="0.6"
+                          specularExponent="30" result="specular">
+        <fePointLight x="200" y="-100" z="300"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceGraphic" operator="in" result="specularMask"/>
+      <!-- Blend specular on top of the brightened blur -->
+      <feBlend in="bright" in2="specularMask" mode="screen" result="final"/>
+    </filter>
+    <!-- Lighter variant for small elements -->
+    <filter id="frosted-light" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="saturate" values="1.6" result="saturated"/>
+      <feComponentTransfer in="saturated" result="bright">
+        <feFuncR type="linear" slope="1.05" intercept="0.01"/>
+        <feFuncG type="linear" slope="1.05" intercept="0.01"/>
+        <feFuncB type="linear" slope="1.05" intercept="0.01"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+</svg>
+
   <!-- FIXED HEADER -->
   <header class="fixed top-0 left-0 right-0 h-16 glass-header z-40 flex items-center justify-between px-8">
     <div class="flex items-center space-x-6">
@@ -67,16 +103,16 @@
         {% endif %}
 
         <!-- Dev plan switcher -->
-        <div class="flex items-center gap-1 ml-2">
+        <div class="flex items-center gap-1 ml-2" style="backdrop-filter:blur(8px);background:rgba(255,255,255,0.06);border-radius:12px;padding:2px;">
           {% for p in ['free', 'pro', 'business'] %}
             <a href="{{ url_for('auth.dev_switch_plan', plan=p) }}"
-               class="px-2 py-0.5 rounded-full text-xs font-semibold transition
+               class="px-3 py-1 text-xs font-semibold transition-all"
+               style="border-radius:10px;
                       {% if current_user.plan == p %}
-                        glass-btn--primary text-white
+                        background:rgba(255,255,255,0.25);color:var(--text-primary);box-shadow:0 2px 8px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.5);
                       {% else %}
-                        glass-card--light hover:opacity-80
-                      {% endif %}"
-               style="{% if current_user.plan == p %}background:var(--accent);color:#fff;{% endif %}">
+                        background:transparent;color:var(--text-tertiary);
+                      {% endif %}">
               {{ p }}
             </a>
           {% endfor %}

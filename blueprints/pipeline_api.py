@@ -4,6 +4,7 @@ Pipeline API blueprint — endpoints for autonomous dispute pipeline control.
 
 import os
 import json
+import threading
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
@@ -11,16 +12,101 @@ from werkzeug.utils import secure_filename
 
 from models import (
     db, DisputePipeline, DisputeAccount, BureauResponse,
-    Client, WorkflowSetting
+    Client, ClientDisputeLetter, WorkflowSetting
 )
 from services.pipeline_engine import (
     create_pipeline, advance_pipeline, get_pipeline_status,
-    approve_pipeline_letters
+    approve_pipeline_letters, _get_agent_config
 )
-from services.pdf_parser import pdf_to_base64_images
-from tasks.dispute_tasks import advance_pipeline_task
 
 pipeline_bp = Blueprint('pipeline', __name__)
+
+# Valid prompt packs
+VALID_PACKS = {'default', 'consumer_law', 'ACDV_response', 'arbitration'}
+
+
+def _run_pipeline_bg(pipeline_id):
+    """Run pipeline advancement in a background thread using the CURRENT app."""
+    import logging
+    from flask import current_app
+    logger = logging.getLogger(__name__)
+
+    # Grab the real app object from the current request context
+    # so the thread reuses the same SQLAlchemy engine / connection pool.
+    app = current_app._get_current_object()
+
+    def _run():
+        try:
+            with app.app_context():
+                # Small delay to let the request's commit finish
+                import time; time.sleep(0.5)
+                logger.info(f"[BG Thread] Advancing pipeline {pipeline_id}")
+                advance_pipeline(pipeline_id)
+                logger.info(f"[BG Thread] Pipeline {pipeline_id} advanced OK")
+        except Exception:
+            logger.exception(f"[BG Thread] Pipeline {pipeline_id} failed")
+            # Mark pipeline as failed so the UI shows an error
+            try:
+                with app.app_context():
+                    pipe = DisputePipeline.query.get(pipeline_id)
+                    if pipe and pipe.state not in ('completed', 'failed'):
+                        pipe.state = 'failed'
+                        pipe.error_message = 'Background processing error — check server logs'
+                        db.session.commit()
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+
+
+def _advance(pipeline_id):
+    """Launch pipeline in a background thread (Huey-free dev mode)."""
+    _run_pipeline_bg(pipeline_id)
+
+
+def _validate_config(config):
+    """Validate agent config dict. Returns (cleaned_config, error_string)."""
+    if not isinstance(config, dict):
+        return None, 'config must be a dict'
+
+    mode = config.get('mode', 'supervised')
+    if mode not in ('supervised', 'full_auto'):
+        return None, 'mode must be "supervised" or "full_auto"'
+
+    max_rounds = config.get('max_rounds', 3)
+    if not isinstance(max_rounds, int) or max_rounds < 1 or max_rounds > 5:
+        return None, 'max_rounds must be 1-5'
+
+    round_packs = config.get('round_packs', [])
+    if round_packs:
+        if not isinstance(round_packs, list) or len(round_packs) > max_rounds:
+            return None, f'round_packs must be a list of up to {max_rounds} items'
+        for pack in round_packs:
+            if pack not in VALID_PACKS:
+                return None, f'Invalid pack: {pack}. Valid: {", ".join(VALID_PACKS)}'
+
+    send_to = config.get('send_to', 'bureaus')
+    if send_to not in ('bureaus', 'creditors'):
+        return None, 'send_to must be "bureaus" or "creditors"'
+
+    creditor_addresses = config.get('creditor_addresses', [])
+    if send_to == 'creditors':
+        if not creditor_addresses:
+            return None, 'creditor_addresses required when send_to is "creditors"'
+        for i, cred in enumerate(creditor_addresses):
+            for field in ('name', 'address1', 'city', 'state', 'zip'):
+                if not cred.get(field, '').strip():
+                    return None, f'Creditor {i+1} missing required field: {field}'
+
+    cleaned = {
+        'mode': mode,
+        'max_rounds': max_rounds,
+        'round_packs': round_packs,
+        'send_to': send_to,
+        'creditor_addresses': creditor_addresses if send_to == 'creditors' else [],
+    }
+    return cleaned, None
 
 
 @pipeline_bp.route('/pipeline/start', methods=['POST'])
@@ -53,15 +139,23 @@ def start_pipeline():
             'state': active.state,
         }), 409
 
-    # Create and start the pipeline
-    pipeline = create_pipeline(client_id, current_user.id)
+    # Validate agent config
+    config = data.get('config')
+    if config:
+        config, error = _validate_config(config)
+        if error:
+            return jsonify({'error': error}), 400
 
-    # Enqueue the first step via background task
-    advance_pipeline_task(pipeline.id)
+    # Create and start the pipeline
+    pipeline = create_pipeline(client_id, current_user.id, config=config)
+
+    # Advance in background
+    _advance(pipeline.id)
 
     return jsonify({
         'pipeline_id': pipeline.id,
         'state': pipeline.state,
+        'mode': (config or {}).get('mode', 'supervised'),
         'message': 'Pipeline started successfully',
     }), 201
 
@@ -76,6 +170,18 @@ def pipeline_status(pipeline_id):
 
     status = get_pipeline_status(pipeline_id)
     return jsonify(status)
+
+
+@pipeline_bp.route('/pipeline/<int:pipeline_id>/config', methods=['GET'])
+@login_required
+def pipeline_config(pipeline_id):
+    """Get the agent config for a pipeline."""
+    pipeline = DisputePipeline.query.get(pipeline_id)
+    if not pipeline or pipeline.user_id != current_user.id:
+        return jsonify({'error': 'Pipeline not found'}), 404
+
+    config = _get_agent_config(pipeline)
+    return jsonify(config or {})
 
 
 @pipeline_bp.route('/pipeline/<int:pipeline_id>/approve', methods=['POST'])
@@ -105,7 +211,7 @@ def upload_response(pipeline_id):
         return jsonify({'error': 'Pipeline not found'}), 404
 
     account_id = request.form.get('account_id', type=int)
-    response_type = request.form.get('response_type')  # removed, updated, verified, stall_letter
+    response_type = request.form.get('response_type')
     file = request.files.get('response_file')
 
     if not account_id or not response_type:
@@ -147,8 +253,7 @@ def upload_response(pipeline_id):
         pipeline.updated_at = datetime.utcnow()
         db.session.commit()
 
-        # Advance the pipeline
-        advance_pipeline_task(pipeline.id)
+        _advance(pipeline.id)
 
     return jsonify({
         'message': 'Response recorded',
@@ -176,6 +281,27 @@ def cancel_pipeline(pipeline_id):
     return jsonify({'message': 'Pipeline cancelled'})
 
 
+@pipeline_bp.route('/pipeline/<int:pipeline_id>/delete', methods=['DELETE'])
+@login_required
+def delete_pipeline(pipeline_id):
+    """Delete a pipeline and all its associated records."""
+    pipeline = DisputePipeline.query.get(pipeline_id)
+    if not pipeline or pipeline.user_id != current_user.id:
+        return jsonify({'error': 'Pipeline not found'}), 404
+
+    # Delete associated records (bureau responses link to accounts, not pipeline)
+    from models import PipelineTask
+    accounts = DisputeAccount.query.filter_by(pipeline_id=pipeline_id).all()
+    for acct in accounts:
+        BureauResponse.query.filter_by(dispute_account_id=acct.id).delete()
+    DisputeAccount.query.filter_by(pipeline_id=pipeline_id).delete()
+    PipelineTask.query.filter_by(pipeline_id=pipeline_id).delete()
+    db.session.delete(pipeline)
+    db.session.commit()
+
+    return jsonify({'message': 'Pipeline deleted'})
+
+
 @pipeline_bp.route('/pipeline/list', methods=['GET'])
 @login_required
 def list_pipelines():
@@ -191,8 +317,57 @@ def list_pipelines():
             'client_name': f"{p.client.first_name} {p.client.last_name}" if p.client else 'Unknown',
             'state': p.state,
             'round_number': p.round_number,
+            'mode': _get_agent_config(p).get('mode', 'supervised'),
             'created_at': p.created_at.isoformat() if p.created_at else None,
             'updated_at': p.updated_at.isoformat() if p.updated_at else None,
         }
         for p in pipelines
     ])
+
+
+@pipeline_bp.route('/pipeline/letter/<int:letter_id>', methods=['GET'])
+@login_required
+def get_letter(letter_id):
+    """Get the text of a dispute letter for viewing/editing."""
+    letter = ClientDisputeLetter.query.get(letter_id)
+    if not letter:
+        return jsonify({'error': 'Letter not found'}), 404
+
+    # Verify ownership through the client → pipeline chain
+    client = Client.query.get(letter.client_id)
+    if not client or client.business_user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    return jsonify({
+        'id': letter.id,
+        'letter_text': letter.letter_text,
+        'status': letter.status,
+        'template_name': letter.template_name,
+        'created_at': letter.created_at.isoformat() if letter.created_at else None,
+    })
+
+
+@pipeline_bp.route('/pipeline/letter/<int:letter_id>', methods=['PUT'])
+@login_required
+def update_letter(letter_id):
+    """Update the text of a draft dispute letter."""
+    letter = ClientDisputeLetter.query.get(letter_id)
+    if not letter:
+        return jsonify({'error': 'Letter not found'}), 404
+
+    client = Client.query.get(letter.client_id)
+    if not client or client.business_user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    if letter.status != 'Draft':
+        return jsonify({'error': f'Cannot edit a letter with status "{letter.status}"'}), 400
+
+    data = request.get_json()
+    new_text = data.get('letter_text')
+    if not new_text or not new_text.strip():
+        return jsonify({'error': 'letter_text is required'}), 400
+
+    letter.letter_text = new_text.strip()
+    db.session.commit()
+
+    return jsonify({'message': 'Letter updated', 'id': letter.id})

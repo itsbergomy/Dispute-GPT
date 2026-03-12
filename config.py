@@ -19,6 +19,11 @@ class Config:
     ALLOWED_EXTENSIONS = {'pdf'}
     SQLALCHEMY_DATABASE_URI = 'sqlite:///dispute.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Allow background threads to share the SQLite connection
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'connect_args': {'check_same_thread': False},
+        'pool_pre_ping': True,
+    }
     SECRET_KEY = os.getenv('SECRET_KEY', 'smartflow')
 
     # Mail
@@ -45,6 +50,15 @@ def create_app():
     from models import db
     db.init_app(app)
     Migrate(app, db)
+
+    # Enable WAL mode for SQLite so background threads can read/write concurrently
+    from sqlalchemy import event
+    with app.app_context():
+        @event.listens_for(db.engine, 'connect')
+        def _set_sqlite_pragma(dbapi_conn, connection_record):
+            cursor = dbapi_conn.cursor()
+            cursor.execute('PRAGMA journal_mode=WAL')
+            cursor.close()
 
     mail.init_app(app)
     login_manager.init_app(app)
