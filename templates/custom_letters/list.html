@@ -20,7 +20,7 @@
         </button>
       </form>
       <!-- Create from scratch -->
-      <a href="{{ url_for('new_custom_letter') }}"
+      <a href="{{ url_for('business.new_custom_letter') }}"
          class="glass-btn glass-btn--primary inline-flex items-center">
         <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -40,10 +40,10 @@
             <p class="text-sm text-gray-500">Created {{ L.created_at.strftime("%b %d, %Y") }}</p>
           </div>
           <div class="flex space-x-4">
-            <a href="{{ url_for('edit_custom_letter', letter_id=L.id) }}"
+            <a href="{{ url_for('business.edit_custom_letter', letter_id=L.id) }}"
                class="glass-link font-medium">Edit</a>
             <form method="POST"
-                  action="{{ url_for('delete_custom_letter', letter_id=L.id) }}"
+                  action="{{ url_for('business.delete_custom_letter', letter_id=L.id) }}"
                   class="inline">
               <button type="submit"
                       class="glass-btn glass-btn--danger">Delete</button>
@@ -54,7 +54,7 @@
     {% else %}
       <div class="glass-card glass-card--light glass-p text-center text-gray-600">
         You have no custom letters yet.<br>
-        <a href="{{ url_for('new_custom_letter') }}" class="glass-link">
+        <a href="{{ url_for('business.new_custom_letter') }}" class="glass-link">
           Create your first template
         </a>
       </div>

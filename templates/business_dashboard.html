@@ -222,35 +222,35 @@
             {% endif %}
           </div>
 
+          <!-- Send To (always visible — both modes need this) -->
+          <div class="mb-4">
+            <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Send Letters To</p>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center" id="sendto-bureaus-card">
+                <input type="radio" name="send_to" value="bureaus" checked class="sr-only" onchange="updateSendToUI()">
+                <div class="text-lg">&#x1F3E2;</div>
+                <div class="text-xs font-semibold">Bureaus</div>
+              </label>
+              <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center" id="sendto-creditors-card">
+                <input type="radio" name="send_to" value="creditors" class="sr-only" onchange="updateSendToUI()">
+                <div class="text-lg">&#x1F4BC;</div>
+                <div class="text-xs font-semibold">Creditors</div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Creditor Addresses (hidden by default, shown when Creditors selected) -->
+          <div id="creditorSection" class="hidden mb-4">
+            <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Creditor Addresses</p>
+            <div id="creditorRows" class="space-y-2"></div>
+            <button type="button" onclick="addCreditorRow()"
+                    class="glass-btn glass-btn--secondary glass-btn--pill text-xs px-3 py-1 mt-2">
+              + Add Creditor
+            </button>
+          </div>
+
           <!-- Full Auto Config (hidden by default) -->
           <div id="fullAutoConfig" class="hidden space-y-4">
-
-            <!-- Send To -->
-            <div>
-              <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Send Letters To</p>
-              <div class="grid grid-cols-2 gap-3">
-                <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center" id="sendto-bureaus-card">
-                  <input type="radio" name="send_to" value="bureaus" checked class="sr-only" onchange="updateSendToUI()">
-                  <div class="text-lg">&#x1F3E2;</div>
-                  <div class="text-xs font-semibold">Bureaus</div>
-                </label>
-                <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center" id="sendto-creditors-card">
-                  <input type="radio" name="send_to" value="creditors" class="sr-only" onchange="updateSendToUI()">
-                  <div class="text-lg">&#x1F4BC;</div>
-                  <div class="text-xs font-semibold">Creditors</div>
-                </label>
-              </div>
-            </div>
-
-            <!-- Creditor Addresses (hidden by default) -->
-            <div id="creditorSection" class="hidden">
-              <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Creditor Addresses</p>
-              <div id="creditorRows" class="space-y-2"></div>
-              <button type="button" onclick="addCreditorRow()"
-                      class="glass-btn glass-btn--secondary glass-btn--pill text-xs px-3 py-1 mt-2">
-                + Add Creditor
-              </button>
-            </div>
           </div>
 
           <!-- Submit -->
@@ -535,29 +535,28 @@
       config.custom_letter_id = parseInt(clId);
     }
 
-    if (mode === 'full_auto') {
-      config.send_to = document.querySelector('input[name="send_to"]:checked').value;
+    // Send To is always read (visible in both modes)
+    config.send_to = document.querySelector('input[name="send_to"]:checked').value;
 
-      if (config.send_to === 'creditors') {
-        const rows = document.querySelectorAll('#creditorRows > div');
-        if (rows.length === 0) {
-          errEl.textContent = 'Add at least one creditor address.';
+    if (config.send_to === 'creditors') {
+      const rows = document.querySelectorAll('#creditorRows > div');
+      if (rows.length === 0) {
+        errEl.textContent = 'Add at least one creditor address.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      for (const row of rows) {
+        const name = row.querySelector('.cred-name').value.trim();
+        const addr = row.querySelector('.cred-addr').value.trim();
+        const city = row.querySelector('.cred-city').value.trim();
+        const state = row.querySelector('.cred-state').value.trim();
+        const zip = row.querySelector('.cred-zip').value.trim();
+        if (!name || !addr || !city || !state || !zip) {
+          errEl.textContent = 'All creditor fields are required.';
           errEl.classList.remove('hidden');
           return;
         }
-        for (const row of rows) {
-          const name = row.querySelector('.cred-name').value.trim();
-          const addr = row.querySelector('.cred-addr').value.trim();
-          const city = row.querySelector('.cred-city').value.trim();
-          const state = row.querySelector('.cred-state').value.trim();
-          const zip = row.querySelector('.cred-zip').value.trim();
-          if (!name || !addr || !city || !state || !zip) {
-            errEl.textContent = 'All creditor fields are required.';
-            errEl.classList.remove('hidden');
-            return;
-          }
-          config.creditor_addresses.push({ name, address1: addr, city, state, zip });
-        }
+        config.creditor_addresses.push({ name, address1: addr, city, state, zip });
       }
     }
 

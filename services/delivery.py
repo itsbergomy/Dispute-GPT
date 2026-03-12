@@ -63,7 +63,15 @@ def mail_letter_via_docupost(pdf_url, recipient, sender, mail_options=None):
     try:
         resp = requests.post(DOCUPOST_SENDLETTER_URL, params=params)
         if resp.status_code == 200 and b"<Error>" not in resp.content:
-            return {'success': True, 'response': resp.text}
+            # Parse the JSON response for tracking info
+            result = {'success': True, 'response': resp.text}
+            try:
+                data = resp.json()
+                result['letter_id'] = data.get('letter_id')
+                result['cost'] = data.get('cost')
+            except (ValueError, KeyError):
+                pass  # Response wasn't JSON — still treat as success
+            return result
         else:
             return {'success': False, 'error': resp.text}
     except Exception as e:

@@ -39,6 +39,18 @@ def free_user_limit_for_dispute(user):
     return False
 
 
+def require_pro_or_business(f):
+    """Decorator: block free users from Pro+ features."""
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if current_user.plan == 'free':
+            flash("Upgrade to Pro to access this feature.", "error")
+            return redirect(url_for('disputes.index'))
+        return f(*args, **kwargs)
+    return decorated
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf'}
 
@@ -258,6 +270,7 @@ def choose_template():
 
 @disputes_bp.route('/prompt-packs', methods=['GET', 'POST'])
 @login_required
+@require_pro_or_business
 def prompt_packs():
     if request.method == 'POST':
         session['prompt_pack'] = request.form['pack_key']
@@ -347,6 +360,8 @@ def manual_mode():
 
 
 @disputes_bp.route('/mail-letter', methods=['GET', 'POST'])
+@login_required
+@require_pro_or_business
 def mail_letter():
     if request.method == 'GET':
         return render_template('mail_letter.html',
@@ -455,6 +470,7 @@ def convert_pdf():
 
 @disputes_bp.route('/dispute-folder')
 @login_required
+@require_pro_or_business
 def dispute_folder():
     logs = DailyLogEntry.query.filter_by(user_id=current_user.id).order_by(DailyLogEntry.timestamp.desc()).all()
     letters = MailedLetter.query.filter_by(user_id=current_user.id).order_by(MailedLetter.created_at.desc()).all()
@@ -464,6 +480,7 @@ def dispute_folder():
 
 @disputes_bp.route('/api/dispute-folder-data')
 @login_required
+@require_pro_or_business
 def dispute_folder_data():
     """Return dispute folder contents as an HTML fragment for the AJAX drawer."""
     logs = DailyLogEntry.query.filter_by(user_id=current_user.id).order_by(DailyLogEntry.timestamp.desc()).all()

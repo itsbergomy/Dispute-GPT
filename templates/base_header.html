@@ -129,8 +129,8 @@
     </div>
   </header>
 
-  {% if current_user.is_authenticated and current_user.plan != 'business' %}
-  <!-- Dispute Folder Toggle -->
+  {% if current_user.is_authenticated and current_user.plan == 'pro' %}
+  <!-- Dispute Folder Toggle (Pro only — free users don't see this) -->
   <button id="openDisputeFolder"
           class="fixed bottom-4 left-4 z-50 glass-btn glass-btn--primary glass-btn--pill shadow-lg">
     Dispute Folder

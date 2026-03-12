@@ -138,7 +138,17 @@
             <span class="text-xs" style="color:var(--text-tertiary);">{{ a.account_number }}</span>
             <span class="text-xs" style="color:var(--text-tertiary);">· {{ a.bureau }}</span>
           </div>
-          <div>
+          <div class="flex items-center gap-2">
+            {% if a.docupost_letter_id %}
+              <a href="https://app.docupost.com/letters" target="_blank"
+                 class="glass-badge glass-badge--info text-xs cursor-pointer hover:opacity-80"
+                 title="Track on DocuPost — ID: {{ a.docupost_letter_id }}">
+                &#x1F4EC; {{ a.delivery_status or 'queued' }}
+              </a>
+              {% if a.docupost_cost %}
+              <span class="text-xs" style="color:var(--text-tertiary);">${{ '%.2f'|format(a.docupost_cost) }}</span>
+              {% endif %}
+            {% endif %}
             {% if a.outcome == 'pending' %}
               <span class="glass-badge glass-badge--warning text-xs">Pending</span>
             {% elif a.outcome == 'removed' %}
