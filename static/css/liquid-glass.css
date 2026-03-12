@@ -659,6 +659,22 @@ body.glass-body p { color: var(--text-secondary); line-height: 1.65; }
   100% { background-position: 200% 0; }
 }
 
+/* Pulse glow — active pipeline badge or running indicators */
+@keyframes glass-pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(0,113,227,0.3); }
+  50%      { box-shadow: 0 0 20px rgba(0,113,227,0.6); }
+}
+.glass-pulse { animation: glass-pulse-glow 2.5s ease-in-out infinite; }
+
+/* Hover lift — deeper elevation on hover for interactive cards */
+.glass-hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.glass-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+}
+
 /* ═══════════════════════════════════════════════════════════
    Toggle Switch
    ═══════════════════════════════════════════════════════════ */

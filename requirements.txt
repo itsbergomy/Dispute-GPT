@@ -16,3 +16,4 @@ stripe
 requests
 playwright
 huey
+python-docx

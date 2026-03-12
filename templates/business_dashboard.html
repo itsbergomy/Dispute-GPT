@@ -16,6 +16,7 @@
       <span style="font-size:0.85rem;">&#x1F916;</span>
       <select id="agent-client-select" class="glass-input glass-select text-xs !py-1 !px-2 !pr-6 !rounded-lg !border-0" style="width:auto;min-width:120px;max-width:150px;background-color:rgba(255,255,255,0.06);font-size:0.7rem;">
         <option value="">Client</option>
+        <option value="all">All Clients</option>
         {% for c in clients %}
           <option value="{{ c.id }}" data-has-pdf="{{ 'yes' if c.pdf_filename else 'no' }}">
             {{ c.first_name }} {{ c.last_name }}
@@ -191,42 +192,38 @@
             </label>
           </div>
 
+          <!-- Letter Source -->
+          <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Letter Source</p>
+          <div class="grid grid-cols-2 gap-3 mb-2">
+            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition hover:scale-[1.02]" id="source-packs-card">
+              <input type="radio" name="letter_source" value="packs" checked class="sr-only" onchange="updateLetterSourceUI()">
+              <div class="text-2xl mb-1">&#x1F4E6;</div>
+              <div class="text-sm font-semibold">Prompt Packs</div>
+              <div class="text-xs" style="color:var(--text-tertiary);">Built-in templates</div>
+            </label>
+            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition hover:scale-[1.02]" id="source-custom-card">
+              <input type="radio" name="letter_source" value="custom" class="sr-only" onchange="updateLetterSourceUI()">
+              <div class="text-2xl mb-1">&#x1F4DD;</div>
+              <div class="text-sm font-semibold">Custom Letter</div>
+              <div class="text-xs" style="color:var(--text-tertiary);">Your uploaded templates</div>
+            </label>
+          </div>
+          <div id="customLetterSelect" class="hidden mb-4">
+            <select id="custom-letter-id" class="glass-select glass-input text-sm w-full !py-1.5">
+              <option value="">Select a custom letter...</option>
+              {% for cl in custom_letters %}
+              <option value="{{ cl.id }}">{{ cl.name }}</option>
+              {% endfor %}
+            </select>
+            {% if not custom_letters %}
+            <p class="text-xs mt-1" style="color:var(--text-tertiary);">
+              No custom letters yet. <a href="{{ url_for('business.list_custom_letters') }}" style="color:var(--accent);">Upload one</a>
+            </p>
+            {% endif %}
+          </div>
+
           <!-- Full Auto Config (hidden by default) -->
           <div id="fullAutoConfig" class="hidden space-y-4">
-
-            <!-- Round Packs -->
-            <div>
-              <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Prompt Pack per Round</p>
-              <div class="space-y-2">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-semibold w-16" style="color:var(--text-secondary);">Round 1</span>
-                  <select id="pack-r1" class="glass-select glass-input text-sm flex-1 !py-1.5">
-                    <option value="default">Default</option>
-                    <option value="consumer_law">Consumer Law</option>
-                    <option value="ACDV_response">ACDV Response</option>
-                    <option value="arbitration">Arbitration</option>
-                  </select>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-semibold w-16" style="color:var(--text-secondary);">Round 2</span>
-                  <select id="pack-r2" class="glass-select glass-input text-sm flex-1 !py-1.5">
-                    <option value="default">Default</option>
-                    <option value="consumer_law" selected>Consumer Law</option>
-                    <option value="ACDV_response">ACDV Response</option>
-                    <option value="arbitration">Arbitration</option>
-                  </select>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-semibold w-16" style="color:var(--text-secondary);">Round 3</span>
-                  <select id="pack-r3" class="glass-select glass-input text-sm flex-1 !py-1.5">
-                    <option value="default">Default</option>
-                    <option value="consumer_law">Consumer Law</option>
-                    <option value="ACDV_response" selected>ACDV Response</option>
-                    <option value="arbitration">Arbitration</option>
-                  </select>
-                </div>
-              </div>
-            </div>
 
             <!-- Send To -->
             <div>
@@ -421,15 +418,28 @@
   function toggleAgent(toggle) {
     const sel = document.getElementById('agent-client-select');
     if (!sel.value) { alert('Please select a client first.'); return; }
-    const opt = sel.options[sel.selectedIndex];
-    if (opt.dataset.hasPdf === 'no') {
-      alert('This client has no credit report uploaded. Upload a PDF first.');
-      return;
+
+    if (sel.value === 'all') {
+      // "All Clients" selected — check at least one has a PDF
+      const pdfOpts = document.querySelectorAll('#agent-client-select option[data-has-pdf="yes"]');
+      if (pdfOpts.length === 0) {
+        alert('No clients have credit reports uploaded.');
+        return;
+      }
+      toggle.classList.add('glass-toggle--active');
+      selectedClientId = 'all';
+      document.getElementById('agentClientName').textContent = `All Clients (${pdfOpts.length} with reports)`;
+    } else {
+      const opt = sel.options[sel.selectedIndex];
+      if (opt.dataset.hasPdf === 'no') {
+        alert('This client has no credit report uploaded. Upload a PDF first.');
+        return;
+      }
+      toggle.classList.add('glass-toggle--active');
+      selectedClientId = parseInt(sel.value);
+      document.getElementById('agentClientName').textContent = opt.textContent.trim();
     }
-    // Activate the toggle visually
-    toggle.classList.add('glass-toggle--active');
-    selectedClientId = parseInt(sel.value);
-    document.getElementById('agentClientName').textContent = opt.textContent.trim();
+
     document.getElementById('agentError').classList.add('hidden');
     const m = document.getElementById('agentConfigModal');
     m.classList.remove('hidden'); m.classList.add('flex');
@@ -467,6 +477,15 @@
     }
   }
 
+  function updateLetterSourceUI() {
+    const src = document.querySelector('input[name="letter_source"]:checked').value;
+    document.getElementById('customLetterSelect').classList.toggle('hidden', src !== 'custom');
+    document.getElementById('source-packs-card').style.borderColor = src === 'packs' ? 'var(--accent)' : '';
+    document.getElementById('source-packs-card').style.borderWidth = src === 'packs' ? '2px' : '';
+    document.getElementById('source-custom-card').style.borderColor = src === 'custom' ? 'var(--accent)' : '';
+    document.getElementById('source-custom-card').style.borderWidth = src === 'custom' ? '2px' : '';
+  }
+
   function addCreditorRow() {
     const container = document.getElementById('creditorRows');
     const idx = container.children.length;
@@ -495,20 +514,28 @@
 
     const mode = document.querySelector('input[name="agent_mode"]:checked').value;
 
+    // Default packs — user picks actual pack at each round checkpoint in client view
     const config = {
       mode: mode,
       max_rounds: 3,
-      round_packs: [],
+      round_packs: ['default', 'consumer_law', 'ACDV_response'],
       send_to: 'bureaus',
       creditor_addresses: [],
     };
 
+    // Check letter source — custom letter overrides prompt packs
+    const letterSource = document.querySelector('input[name="letter_source"]:checked').value;
+    if (letterSource === 'custom') {
+      const clId = document.getElementById('custom-letter-id').value;
+      if (!clId) {
+        errEl.textContent = 'Please select a custom letter.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      config.custom_letter_id = parseInt(clId);
+    }
+
     if (mode === 'full_auto') {
-      config.round_packs = [
-        document.getElementById('pack-r1').value,
-        document.getElementById('pack-r2').value,
-        document.getElementById('pack-r3').value,
-      ];
       config.send_to = document.querySelector('input[name="send_to"]:checked').value;
 
       if (config.send_to === 'creditors') {
@@ -538,17 +565,48 @@
     btn.textContent = 'Starting...';
 
     try {
-      const res = await fetch('/api/pipeline/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_id: selectedClientId, config }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to start pipeline');
+      if (selectedClientId === 'all') {
+        // Batch mode — start pipeline for every client with a PDF
+        const opts = document.querySelectorAll('#agent-client-select option[data-has-pdf="yes"]');
+        const clientIds = Array.from(opts).map(o => parseInt(o.value));
+        if (clientIds.length === 0) {
+          throw new Error('No clients have credit reports uploaded.');
+        }
+        let started = 0;
+        let errors = [];
+        for (const cid of clientIds) {
+          btn.textContent = `Starting ${++started} of ${clientIds.length}...`;
+          try {
+            const res = await fetch('/api/pipeline/start', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ client_id: cid, config }),
+            });
+            const data = await res.json();
+            if (!res.ok) errors.push(`Client ${cid}: ${data.error}`);
+          } catch (e) {
+            errors.push(`Client ${cid}: ${e.message}`);
+          }
+        }
+        if (errors.length > 0) {
+          errEl.textContent = `Started ${clientIds.length - errors.length} of ${clientIds.length}. Errors: ${errors.join('; ')}`;
+          errEl.classList.remove('hidden');
+        }
+        // Reload dashboard to see all new pipelines
+        window.location.reload();
+      } else {
+        // Single client mode
+        const res = await fetch('/api/pipeline/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ client_id: selectedClientId, config }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to start pipeline');
+        }
+        window.location.href = '/clients/' + selectedClientId;
       }
-      // Success — redirect to client view
-      window.location.href = '/clients/' + selectedClientId;
     } catch (e) {
       errEl.textContent = e.message;
       errEl.classList.remove('hidden');
@@ -561,6 +619,7 @@
   // Initialize mode UI
   updateModeUI();
   updateSendToUI();
+  updateLetterSourceUI();
 
   // ── Delete pipeline ──
   function deletePipeline(id, btn) {

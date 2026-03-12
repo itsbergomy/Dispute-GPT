@@ -80,6 +80,8 @@ def business_dashboard():
     correspondence = []
     active_tab = request.args.get('tab', 'clients')
 
+    custom_letters = CustomLetter.query.filter_by(user_id=current_user.id).all()
+
     return render_template("business_dashboard.html",
                            clients=clients,
                            selected_client=selected_client,
@@ -87,7 +89,8 @@ def business_dashboard():
                            stats=stats,
                            correspondence=correspondence,
                            active_tab=active_tab,
-                           pipelines=pipelines)
+                           pipelines=pipelines,
+                           custom_letters=custom_letters)
 
 
 @business_bp.route('/clients/create', methods=['POST'])
@@ -177,11 +180,17 @@ def view_client(client_id):
 @login_required
 def upload_correspondence(client_id):
     client = Client.query.get_or_404(client_id)
+    if client.business_user_id != current_user.id:
+        abort(403)
+
     file = request.files.get('correspondence_file')
 
     if file:
         filename = secure_filename(file.filename)
-        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        # Save to client-specific correspondence folder
+        corr_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], str(client.id), 'correspondence')
+        os.makedirs(corr_dir, exist_ok=True)
+        filepath = os.path.join(corr_dir, filename)
         file.save(filepath)
 
         new_file = Correspondence(
@@ -192,14 +201,19 @@ def upload_correspondence(client_id):
         )
         db.session.add(new_file)
         db.session.commit()
+        flash("Correspondence uploaded.", "success")
 
     return redirect(url_for('business.view_client', client_id=client_id))
 
 
-@business_bp.route('/view-correspondence/<filename>')
+@business_bp.route('/clients/<int:client_id>/correspondence/<filename>')
 @login_required
-def view_correspondence_file(filename):
-    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+def view_correspondence_file(client_id, filename):
+    client = Client.query.get_or_404(client_id)
+    if client.business_user_id != current_user.id:
+        abort(403)
+    corr_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], str(client_id), 'correspondence')
+    return send_from_directory(corr_dir, filename)
 
 
 @business_bp.route('/clients/<int:client_id>/edit', methods=['GET', 'POST'])
@@ -261,7 +275,12 @@ def client_file(client_id, filetype):
     if not fn:
         abort(404)
 
-    return send_from_directory(current_app.config['UPLOAD_FOLDER'], fn, as_attachment=False)
+    # Files are saved in client-specific subdirectories; fall back to root for legacy files
+    upload_dir = current_app.config['UPLOAD_FOLDER']
+    client_dir = os.path.join(upload_dir, str(client_id))
+    if os.path.exists(os.path.join(client_dir, fn)):
+        return send_from_directory(client_dir, fn, as_attachment=False)
+    return send_from_directory(upload_dir, fn, as_attachment=False)
 
 
 @business_bp.route('/clients/<int:client_id>/run-analysis', methods=['POST'])
@@ -571,6 +590,74 @@ def delete_custom_letter(letter_id):
     db.session.commit()
     flash("Custom letter deleted.", "info")
     return redirect(url_for("business.list_custom_letters"))
+
+
+@business_bp.route("/custom-letters/upload", methods=["POST"])
+@login_required
+def upload_custom_letter():
+    """Upload a PDF, DOCX, or TXT file and extract text into a new custom letter."""
+    file = request.files.get('letter_file')
+    if not file or not file.filename:
+        flash("No file selected.", "error")
+        return redirect(url_for("business.list_custom_letters"))
+
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+
+    if ext not in ('pdf', 'docx', 'txt'):
+        flash("Unsupported file type. Please upload a PDF, DOCX, or TXT file.", "error")
+        return redirect(url_for("business.list_custom_letters"))
+
+    try:
+        if ext == 'txt':
+            body = file.read().decode('utf-8', errors='replace')
+
+        elif ext == 'pdf':
+            import pdfplumber
+            import tempfile
+            tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+            file.save(tmp.name)
+            tmp.close()
+            pages_text = []
+            with pdfplumber.open(tmp.name) as pdf:
+                for page in pdf.pages:
+                    text = page.extract_text()
+                    if text:
+                        pages_text.append(text)
+            os.unlink(tmp.name)
+            body = '\n\n'.join(pages_text)
+
+        elif ext == 'docx':
+            import docx
+            import tempfile
+            tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.docx')
+            file.save(tmp.name)
+            tmp.close()
+            doc = docx.Document(tmp.name)
+            body = '\n\n'.join(p.text for p in doc.paragraphs if p.text.strip())
+            os.unlink(tmp.name)
+
+        if not body or not body.strip():
+            flash("Could not extract any text from the file.", "error")
+            return redirect(url_for("business.list_custom_letters"))
+
+        # Create the custom letter with extracted text
+        name = filename.rsplit('.', 1)[0] if '.' in filename else filename
+        letter = CustomLetter(
+            user_id=current_user.id,
+            name=name,
+            subject='',
+            body=body.strip(),
+        )
+        db.session.add(letter)
+        db.session.commit()
+
+        flash("Letter uploaded! Review and edit the extracted text below.", "success")
+        return redirect(url_for("business.edit_custom_letter", letter_id=letter.id))
+
+    except Exception as e:
+        flash(f"Error extracting text: {e}", "error")
+        return redirect(url_for("business.list_custom_letters"))
 
 
 # ─── Helper ───

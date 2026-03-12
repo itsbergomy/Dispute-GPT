@@ -6,13 +6,28 @@
      class="glass-btn glass-btn--ghost mb-4 inline-flex items-center gap-1 text-sm">← Back</a>
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-3xl font-extrabold text-gray-900">Your Custom Letters</h1>
-    <a href="{{ url_for('new_custom_letter') }}"
-       class="glass-btn glass-btn--primary inline-flex items-center">
-      <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      New Template
-    </a>
+    <div class="flex items-center gap-3">
+      <!-- Upload existing letter -->
+      <form method="POST" action="{{ url_for('business.upload_custom_letter') }}" enctype="multipart/form-data" class="inline-flex">
+        <input type="file" name="letter_file" accept=".pdf,.docx,.txt" required
+               class="hidden" id="uploadLetterInput" onchange="this.form.submit()">
+        <button type="button" onclick="document.getElementById('uploadLetterInput').click()"
+                class="glass-btn glass-btn--secondary inline-flex items-center">
+          <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Upload Letter
+        </button>
+      </form>
+      <!-- Create from scratch -->
+      <a href="{{ url_for('new_custom_letter') }}"
+         class="glass-btn glass-btn--primary inline-flex items-center">
+        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        New Template
+      </a>
+    </div>
   </div>
 
   <!-- List/Grid of Templates -->

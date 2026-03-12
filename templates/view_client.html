@@ -10,7 +10,7 @@
   </a>
 
   <!-- ═══════════════ CLIENT HEADER ═══════════════ -->
-  <div class="glass-card glass-card--heavy rounded-3xl p-6 md:p-8 mb-8">
+  <div class="glass-card glass-card--heavy rounded-3xl p-6 md:p-8 mb-8 glass-animate-in">
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <!-- Avatar + Info -->
       <div class="flex items-center gap-4">
@@ -62,7 +62,7 @@
 
   <!-- ═══════════════ PIPELINE STATUS ═══════════════ -->
   {% if pipeline_status %}
-  <div class="glass-card glass-card--heavy rounded-3xl p-6 mb-8" id="pipelineCard">
+  <div class="glass-card glass-card--heavy rounded-3xl p-6 mb-8 glass-animate-in {{ 'glass-pulse' if pipeline_status.state not in ('completed', 'failed', 'round_review') else '' }}" id="pipelineCard" style="animation-delay:.1s">
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-lg font-bold flex items-center gap-2">
         &#x1F916; Pipeline Active
@@ -80,8 +80,8 @@
 
     <!-- State Stepper -->
     <div class="flex items-center gap-1 mb-4 overflow-x-auto pb-1" id="stateStepper">
-      {% set states = ['intake', 'analysis', 'strategy', 'generation', 'review', 'delivery', 'awaiting_response', 'completed'] %}
-      {% set state_labels = {'intake':'Intake', 'analysis':'Analysis', 'strategy':'Strategy', 'generation':'Letters', 'review':'Review', 'delivery':'Delivery', 'awaiting_response':'Awaiting', 'completed':'Done'} %}
+      {% set states = ['intake', 'strategy', 'generation', 'review', 'delivery', 'awaiting_response', 'round_review', 'completed'] %}
+      {% set state_labels = {'intake':'Intake', 'strategy':'Strategy', 'generation':'Letters', 'review':'Review', 'delivery':'Delivery', 'awaiting_response':'Awaiting', 'round_review':'Round Review', 'completed':'Done'} %}
       {% set current = pipeline_status.state %}
       {% set current_idx = states.index(current) if current in states else -1 %}
       {% for s in states %}
@@ -191,6 +191,85 @@
       {% endfor %}
     </div>
     {% endif %}
+
+    <!-- Round Review — Hard pause between rounds -->
+    {% if pipeline_status.state == 'round_review' %}
+    <div class="glass-card glass-card--light rounded-xl p-4">
+      <p class="text-sm font-bold mb-1">&#x1F4CA; Round {{ pipeline_status.round_number }} Complete</p>
+      <p class="text-xs mb-3" style="color:var(--text-tertiary);">
+        Review outcomes below. When ready, select a prompt pack and start the next round.
+      </p>
+
+      <!-- Outcome summary -->
+      <div class="flex flex-wrap gap-3 mb-4">
+        {% if pipeline_status.round_summary.removed > 0 %}
+        <div class="glass-badge glass-badge--success text-xs">&#x2705; {{ pipeline_status.round_summary.removed }} Removed</div>
+        {% endif %}
+        {% if pipeline_status.round_summary.updated > 0 %}
+        <div class="glass-badge glass-badge--success text-xs">&#x1F4DD; {{ pipeline_status.round_summary.updated }} Updated</div>
+        {% endif %}
+        {% if pipeline_status.round_summary.verified > 0 %}
+        <div class="glass-badge glass-badge--danger text-xs">&#x274C; {{ pipeline_status.round_summary.verified }} Verified</div>
+        {% endif %}
+        {% if pipeline_status.round_summary.no_response > 0 %}
+        <div class="glass-badge glass-badge--warning text-xs">&#x23F3; {{ pipeline_status.round_summary.no_response }} No Response</div>
+        {% endif %}
+      </div>
+
+      {% if pipeline_status.round_number < pipeline_status.max_rounds %}
+      <!-- Next round controls -->
+      <div class="flex items-center gap-3">
+        <label class="text-xs font-medium" style="color:var(--text-secondary);">Round {{ pipeline_status.round_number + 1 }} Pack:</label>
+        <select id="nextRoundPack" class="glass-select text-xs !py-1 w-40">
+          <option value="default" {{ 'selected' if pipeline_status.round_packs[pipeline_status.round_number] == 'default' else '' }}>Default</option>
+          <option value="consumer_law" {{ 'selected' if pipeline_status.round_packs[pipeline_status.round_number] == 'consumer_law' else '' }}>Consumer Law</option>
+          <option value="ACDV_response" {{ 'selected' if pipeline_status.round_packs[pipeline_status.round_number] == 'ACDV_response' else '' }}>ACDV Response</option>
+          <option value="arbitration" {{ 'selected' if pipeline_status.round_packs[pipeline_status.round_number] == 'arbitration' else '' }}>Arbitration</option>
+        </select>
+        <button onclick="startNextRound()" id="nextRoundBtn"
+                class="glass-btn glass-btn--primary glass-btn--pill text-sm px-5 py-2">
+          &#x1F680; Start Round {{ pipeline_status.round_number + 1 }}
+        </button>
+      </div>
+      {% else %}
+      <p class="text-xs font-medium" style="color:var(--text-tertiary);">
+        Max rounds ({{ pipeline_status.max_rounds }}) reached. No further escalation available.
+      </p>
+      {% endif %}
+    </div>
+
+    <script>
+    function startNextRound() {
+      const btn = document.getElementById('nextRoundBtn');
+      btn.disabled = true;
+      btn.textContent = 'Starting...';
+
+      const pack = document.getElementById('nextRoundPack').value;
+      const packs = {{ pipeline_status.round_packs|tojson }};
+      packs[{{ pipeline_status.round_number }}] = pack;
+
+      fetch('/api/pipeline/{{ pipeline_status.id }}/next-round', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ round_packs: packs })
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.message) {
+          location.reload();
+        } else {
+          alert(d.error || 'Error starting next round');
+          btn.disabled = false;
+          btn.textContent = '\u{1F680} Start Round {{ pipeline_status.round_number + 1 }}';
+        }
+      })
+      .catch(e => {
+        alert('Network error');
+        btn.disabled = false;
+      });
+    }
+    </script>
+    {% endif %}
   </div>
   {% endif %}
 
@@ -221,7 +300,7 @@
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
     <!-- ═══════════════ LEFT COLUMN (3/5) ═══════════════ -->
-    <div class="lg:col-span-3 space-y-6">
+    <div class="lg:col-span-3 space-y-6 glass-animate-in" style="animation-delay:.15s">
 
       <!-- DisputeGPT -->
       <div class="glass-card glass-card--heavy rounded-3xl p-6">
@@ -248,11 +327,34 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             <div>
               <label class="glass-label text-xs mb-1">Action</label>
+              {% if current_user.plan == 'business' %}
+              <select name="action" class="glass-select w-full text-sm">
+                <option value="">Select action...</option>
+                <option value="Delete this account">Delete this account</option>
+                <option value="Update this account">Update this account</option>
+                <option value="Validate this debt">Validate this debt</option>
+                <option value="Remove late payments">Remove late payments</option>
+                <option value="Remove inquiry">Remove inquiry</option>
+              </select>
+              {% else %}
               <input name="action" placeholder="e.g. Delete this account" class="glass-input w-full text-sm"/>
+              {% endif %}
             </div>
             <div>
               <label class="glass-label text-xs mb-1">Issue</label>
+              {% if current_user.plan == 'business' %}
+              <select name="issue" class="glass-select w-full text-sm">
+                <option value="">Select issue...</option>
+                <option value="Account is inaccurate">Account is inaccurate</option>
+                <option value="Not my account">Not my account</option>
+                <option value="Account is outdated">Account is outdated</option>
+                <option value="Paid in full">Paid in full</option>
+                <option value="Identity theft">Identity theft</option>
+                <option value="Duplicate account">Duplicate account</option>
+              </select>
+              {% else %}
               <input name="issue" placeholder="e.g. This account is inaccurate" class="glass-input w-full text-sm"/>
+              {% endif %}
             </div>
           </div>
 
@@ -342,7 +444,7 @@
                 <span class="font-medium">{{ doc.filename }}</span>
                 <span class="text-xs ml-2" style="color:var(--text-tertiary);">{{ doc.uploaded_at }}</span>
               </div>
-              <a href="{{ url_for('business.view_correspondence', filename=doc.filename) }}" target="_blank"
+              <a href="{{ url_for('business.view_correspondence_file', client_id=client.id, filename=doc.filename) }}" target="_blank"
                  class="glass-btn glass-btn--primary glass-btn--pill text-xs px-3 py-1">View</a>
             </div>
             {% endfor %}
@@ -360,15 +462,22 @@
         </div>
       </div>
 
-      <!-- Mailed Letters -->
+      <!-- Mailed Letters (Archive / Backup) -->
       <div class="glass-card glass-card--heavy rounded-3xl p-6">
         <h2 class="text-lg font-bold mb-4">Mailed Letters</h2>
         {% if letters %}
         <div class="space-y-2">
           {% for L in letters %}
-          <div class="glass-card glass-card--light rounded-xl p-3 flex items-center justify-between">
+          <div class="glass-list-item flex items-center justify-between">
             <div>
-              <div class="text-sm font-medium">Letter sent {{ L.created_at.strftime('%b %d, %Y') if L.created_at else '' }}</div>
+              <div class="text-sm font-medium">{{ L.template_name or 'Dispute Letter' }}</div>
+              <div class="text-xs" style="color:var(--text-tertiary);">
+                {{ L.entity_name or '' }}
+                {% if L.created_at %} · {{ L.created_at.strftime('%b %d, %Y') }}{% endif %}
+                {% if L.status %}
+                  <span class="glass-badge glass-badge--{{ 'success' if L.status == 'Sent' else 'warning' }} text-xs ml-1">{{ L.status }}</span>
+                {% endif %}
+              </div>
             </div>
             {% if L.pdf_url %}
             <a href="{{ L.pdf_url }}" target="_blank" class="glass-btn glass-btn--primary glass-btn--pill text-xs px-3 py-1">View PDF</a>
@@ -384,7 +493,7 @@
     </div>
 
     <!-- ═══════════════ RIGHT COLUMN (2/5) — PDF + Analysis ═══════════════ -->
-    <div class="lg:col-span-2 space-y-6">
+    <div class="lg:col-span-2 space-y-6 glass-animate-in" style="animation-delay:.2s">
 
       <!-- Credit Report Preview -->
       {% if client.pdf_filename %}
@@ -395,7 +504,7 @@
         <object
           data="{{ url_for('business.client_file', client_id=client.id, filetype='pdf') }}"
           type="application/pdf"
-          class="w-full" style="height:60vh;">
+          class="w-full" style="height:60vh;display:block;">
           <p class="p-6 text-center text-sm" style="color:var(--text-tertiary);">
             Inline PDF not supported.
             <a href="{{ url_for('business.client_file', client_id=client.id, filetype='pdf') }}"

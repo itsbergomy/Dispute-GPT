@@ -11,7 +11,8 @@ from datetime import datetime
 
 from models import (
     db, DisputePipeline, PipelineTask, DisputeAccount,
-    Client, ClientReportAnalysis, ClientDisputeLetter, WorkflowSetting
+    Client, ClientReportAnalysis, ClientDisputeLetter, WorkflowSetting,
+    CustomLetter
 )
 from services.pdf_parser import extract_negative_items_from_pdf, compute_pdf_hash
 from services.report_analyzer import run_report_analysis
@@ -27,7 +28,7 @@ from services.delivery import mail_letter_via_docupost
 logger = logging.getLogger(__name__)
 
 # Wait states — pipeline pauses here until external action
-WAIT_STATES = {'review', 'awaiting_response', 'completed', 'failed'}
+WAIT_STATES = {'review', 'awaiting_response', 'round_review', 'completed', 'failed'}
 
 # Hardcoded bureau dispute addresses
 BUREAU_ADDRESSES = {
@@ -257,6 +258,17 @@ def get_pipeline_status(pipeline_id):
     accounts = DisputeAccount.query.filter_by(pipeline_id=pipeline_id).order_by(DisputeAccount.created_at).all()
     agent_config = _get_agent_config(pipeline)
 
+    # Compute per-round outcome summary
+    current_round_accounts = [a for a in accounts if a.round_number == pipeline.round_number]
+    round_summary = {
+        'total': len(current_round_accounts),
+        'removed': sum(1 for a in current_round_accounts if a.outcome == 'removed'),
+        'updated': sum(1 for a in current_round_accounts if a.outcome == 'updated'),
+        'verified': sum(1 for a in current_round_accounts if a.outcome == 'verified'),
+        'no_response': sum(1 for a in current_round_accounts if a.outcome == 'no_response'),
+        'pending': sum(1 for a in current_round_accounts if a.outcome == 'pending'),
+    }
+
     return {
         'id': pipeline.id,
         'client_id': pipeline.client_id,
@@ -264,6 +276,8 @@ def get_pipeline_status(pipeline_id):
         'round_number': pipeline.round_number,
         'max_rounds': agent_config.get('max_rounds', 3),
         'mode': agent_config.get('mode', 'supervised'),
+        'round_packs': agent_config.get('round_packs', ['default', 'consumer_law', 'ACDV_response']),
+        'round_summary': round_summary,
         'error_message': pipeline.error_message,
         'created_at': pipeline.created_at.isoformat() if pipeline.created_at else None,
         'updated_at': pipeline.updated_at.isoformat() if pipeline.updated_at else None,
@@ -320,7 +334,7 @@ def handle_intake(pipeline):
     pipeline.pdf_hash = compute_pdf_hash(pdf_path)
     db.session.commit()
 
-    return 'analysis'
+    return 'strategy'  # Skip analysis — user runs analyzer manually before starting agent
 
 
 def handle_analysis(pipeline):
@@ -481,12 +495,19 @@ def handle_generation(pipeline):
         # Build full context with client + account + recipient details
         context = _get_client_context(client, account, recipient)
 
-        # Build and generate the letter
-        prompt = build_prompt(account.template_pack, 0, context)
-        letter_text = generate_letter(prompt)
-
-        # Sanitize: replace any remaining placeholders with real data
-        letter_text = _sanitize_letter(letter_text, context)
+        # Build the letter — custom letter = pure template fill (no GPT), prompt packs = GPT
+        custom_letter_id = agent_config.get('custom_letter_id')
+        if custom_letter_id:
+            custom = CustomLetter.query.get(custom_letter_id)
+            if custom:
+                # Pure template passthrough — inject bureau/account/client data, skip GPT
+                letter_text = _sanitize_letter(custom.body, context)
+            else:
+                prompt = build_prompt(account.template_pack, 0, context)
+                letter_text = _sanitize_letter(generate_letter(prompt), context)
+        else:
+            prompt = build_prompt(account.template_pack, 0, context)
+            letter_text = _sanitize_letter(generate_letter(prompt), context)
 
         # Save to database
         letter_record = ClientDisputeLetter(
@@ -564,8 +585,21 @@ def approve_pipeline_letters(pipeline_id):
 
 def handle_delivery(pipeline):
     """Merge PDFs and mail each letter via DocuPost."""
+    import shutil
+    import uuid as _uuid
+
+    # ── Early validation ──
+    docupost_token = os.environ.get('DOCUPOST_API_TOKEN')
+    dry_run = os.environ.get('DOCUPOST_DRY_RUN', 'false').lower() == 'true'
+
+    if not docupost_token and not dry_run:
+        logger.error("DOCUPOST_API_TOKEN not configured — cannot proceed with delivery. "
+                      "Set DOCUPOST_DRY_RUN=true to test without sending.")
+        return 'delivery'  # Stay in delivery state for retry
+
     client = Client.query.get(pipeline.client_id)
     upload_folder = os.environ.get('UPLOAD_FOLDER', 'static/uploads')
+    base_url = os.environ.get('APP_BASE_URL', 'http://localhost:5000')
     agent_config = _get_agent_config(pipeline)
     send_to = agent_config.get('send_to', 'bureaus')
     creditor_addresses = agent_config.get('creditor_addresses', [])
@@ -575,6 +609,9 @@ def handle_delivery(pipeline):
         round_number=pipeline.round_number,
         outcome='pending',
     ).all()
+
+    sent_count = 0
+    fail_count = 0
 
     for account in accounts:
         if not account.letter or account.letter.status != 'Approved':
@@ -607,16 +644,26 @@ def handle_delivery(pipeline):
             elif ext == 'pdf':
                 pdf_paths.append(doc_path)
 
-        # 3. Merge
-        package_path = merge_dispute_package(pdf_paths)
+        # 3. Merge into temp file, then move to public uploads dir
+        tmp_package = merge_dispute_package(pdf_paths)
+
+        package_filename = f"package_{client.id}_{account.id}_{_uuid.uuid4().hex[:8]}.pdf"
+        package_dir = os.path.join(upload_folder, str(client.id), 'packages')
+        os.makedirs(package_dir, exist_ok=True)
+        public_path = os.path.join(package_dir, package_filename)
+        shutil.move(tmp_package, public_path)
+
+        # Build the publicly accessible URL for DocuPost
+        pdf_url = f"{base_url}/static/uploads/{client.id}/packages/{package_filename}"
 
         # 4. Final placeholder safety check
         try:
-            _validate_pdf_no_placeholders(package_path)
+            _validate_pdf_no_placeholders(public_path)
         except ValueError as e:
             logger.error(str(e))
             account.letter.status = 'Rejected'
             db.session.commit()
+            fail_count += 1
             continue
 
         # 5. Determine recipient address
@@ -627,11 +674,13 @@ def handle_delivery(pipeline):
             )
             if not recipient:
                 logger.warning(f"No creditor address for {account.bureau}, skipping")
+                fail_count += 1
                 continue
         else:
             recipient = BUREAU_ADDRESSES.get(account.bureau.lower(), {})
             if not recipient:
                 logger.warning(f"Unknown bureau {account.bureau}, skipping")
+                fail_count += 1
                 continue
 
         sender = {
@@ -643,20 +692,37 @@ def handle_delivery(pipeline):
             'zip': client.zip_code or '',
         }
 
-        # 6. Mail via DocuPost
-        result = mail_letter_via_docupost(
-            pdf_url=package_path,
-            recipient=recipient,
-            sender=sender,
-        )
+        # 6. Mail via DocuPost (or dry-run)
+        if dry_run:
+            logger.info(f"DRY RUN: Would mail to {recipient.get('name')} "
+                        f"for account {account.account_name} ({account.account_number})")
+            logger.info(f"DRY RUN: PDF URL = {pdf_url}")
+            result = {'success': True, 'response': 'dry-run'}
+        else:
+            result = mail_letter_via_docupost(
+                pdf_url=pdf_url,
+                recipient=recipient,
+                sender=sender,
+            )
 
         if result.get('success'):
             account.mailed_at = datetime.utcnow()
             account.letter.status = 'Sent'
+            account.letter.pdf_url = f"/static/uploads/{client.id}/packages/{package_filename}"
+            sent_count += 1
         else:
             logger.warning(f"Mail failed for account {account.account_number}: {result.get('error')}")
+            fail_count += 1
 
         db.session.commit()
+
+    # ── Partial failure handling ──
+    logger.info(f"Delivery complete for pipeline {pipeline.id}: "
+                f"{sent_count} sent, {fail_count} failed")
+
+    if sent_count == 0 and fail_count > 0:
+        logger.error(f"All {fail_count} letters failed — staying in delivery for retry")
+        return 'delivery'
 
     return 'awaiting_response'
 
@@ -669,8 +735,9 @@ def handle_awaiting_response(pipeline):
 def handle_response_received(pipeline):
     """
     Examine outcomes for all accounts in the current round.
-    If all removed -> completed.
-    If any verified/no_response -> escalate and loop back to strategy.
+    If all removed/updated -> completed.
+    If max rounds exhausted -> completed.
+    Otherwise -> round_review (hard pause — user must start next round).
     """
     accounts = DisputeAccount.query.filter_by(
         pipeline_id=pipeline.id,
@@ -689,11 +756,13 @@ def handle_response_received(pipeline):
     if pipeline.round_number >= max_rounds:
         return 'completed'  # Exhausted configured rounds
 
-    # Escalate: increment round and loop back to strategy
-    pipeline.round_number += 1
-    db.session.commit()
+    # Hard pause — user reviews outcomes and decides whether to start next round
+    return 'round_review'
 
-    return 'strategy'
+
+def handle_round_review(pipeline):
+    """No-op — pipeline waits here until user explicitly starts the next round."""
+    return 'round_review'
 
 
 # ─── State Handler Registry ───
@@ -707,4 +776,5 @@ STATE_HANDLERS = {
     'delivery': handle_delivery,
     'awaiting_response': handle_awaiting_response,
     'response_received': handle_response_received,
+    'round_review': handle_round_review,
 }

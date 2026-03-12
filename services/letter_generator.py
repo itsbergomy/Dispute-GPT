@@ -42,6 +42,21 @@ PACKS = {
     ]
 }
 
+# Preamble injected before every prompt so GPT uses real client data
+CLIENT_CONTEXT_PREAMBLE = (
+    "Write this dispute letter on behalf of the client below. "
+    "Use their REAL name and address in the letter header, body, and signature. "
+    "Do NOT use placeholder text like [YOUR NAME], [ADDRESS], or {{CLIENT_NAME}}.\n\n"
+    "Client: {client_full_name}\n"
+    "Address: {client_address}\n"
+    "{client_address_line2_section}"
+    "City/State/ZIP: {client_city_state_zip}\n"
+    "Date: {today_date}\n\n"
+    "Recipient: {entity}\n"
+    "{recipient_address_section}"
+    "---\n\n"
+)
+
 PACK_INFO = [
     {"key": "default", "name": "📝 Default Pack", "description": "Your go-to dispute templates — clean, direct, and effective for first-round disputes."},
     {"key": "arbitration", "name": "⚖️ Arbitration Pack", "description": "Heavy hitters. Arbitration demands under 15 U.S.C. §1681e(b) — for when bureaus won't budge."},
@@ -76,16 +91,17 @@ def generate_letter(prompt, model="gpt-4o"):
 
 def build_prompt(template_pack, template_index, context):
     """
-    Build a filled prompt from a template pack.
+    Build a filled prompt from a template pack, prepended with client context.
 
     Args:
         template_pack: Key from PACKS dict (e.g., 'default', 'arbitration').
         template_index: Index of the template within the pack.
         context: Dict with keys: entity, account_name, account_number, marks, action, issue,
-                 and optionally dispute_date, days.
+                 and optionally client_full_name, client_address, client_city_state_zip,
+                 today_date, dispute_date, days, etc.
 
     Returns:
-        Filled prompt string.
+        Filled prompt string with client preamble.
     """
     templates = PACKS.get(template_pack, PACKS['default'])
     idx = min(template_index, len(templates) - 1)
@@ -100,10 +116,33 @@ def build_prompt(template_pack, template_index, context):
         'issue': '',
         'dispute_date': '',
         'days': '',
+        'client_full_name': '',
+        'client_address': '',
+        'client_address_line2': '',
+        'client_city_state_zip': '',
+        'today_date': '',
+        'creditor_address': '',
+        'creditor_city_state_zip': '',
+        'bureau_address': '',
     }
     ctx.update(context)
 
-    return templates[idx].format(**ctx)
+    # Build optional sections for preamble (only show if data exists)
+    addr2 = ctx.get('client_address_line2', '').strip()
+    ctx['client_address_line2_section'] = f"{addr2}\n" if addr2 else ''
+
+    recip_addr = ctx.get('creditor_address') or ctx.get('bureau_address', '')
+    recip_csz = ctx.get('creditor_city_state_zip', '').strip(', ')
+    if recip_addr:
+        ctx['recipient_address_section'] = f"Address: {recip_addr}\n{recip_csz}\n" if recip_csz else f"Address: {recip_addr}\n"
+    else:
+        ctx['recipient_address_section'] = ''
+
+    # Prepend client context preamble + the template body
+    preamble = CLIENT_CONTEXT_PREAMBLE.format(**ctx)
+    body = templates[idx].format(**ctx)
+
+    return preamble + body
 
 
 def letter_to_pdf(letter_text, output_path=None):

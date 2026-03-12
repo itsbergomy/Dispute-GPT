@@ -99,6 +99,17 @@ def _validate_config(config):
                 if not cred.get(field, '').strip():
                     return None, f'Creditor {i+1} missing required field: {field}'
 
+    # Optional custom letter override
+    custom_letter_id = config.get('custom_letter_id')
+    if custom_letter_id is not None:
+        if not isinstance(custom_letter_id, int):
+            return None, 'custom_letter_id must be an integer'
+        from models import CustomLetter
+        from flask_login import current_user
+        cl = CustomLetter.query.get(custom_letter_id)
+        if not cl or cl.user_id != current_user.id:
+            return None, 'Custom letter not found or not yours'
+
     cleaned = {
         'mode': mode,
         'max_rounds': max_rounds,
@@ -106,6 +117,9 @@ def _validate_config(config):
         'send_to': send_to,
         'creditor_addresses': creditor_addresses if send_to == 'creditors' else [],
     }
+    if custom_letter_id is not None:
+        cleaned['custom_letter_id'] = custom_letter_id
+
     return cleaned, None
 
 
@@ -371,3 +385,58 @@ def update_letter(letter_id):
     db.session.commit()
 
     return jsonify({'message': 'Letter updated', 'id': letter.id})
+
+
+@pipeline_bp.route('/pipeline/<int:pipeline_id>/next-round', methods=['POST'])
+@login_required
+def start_next_round(pipeline_id):
+    """
+    Advance a pipeline from round_review into the next round.
+    User must explicitly trigger this — the pipeline never auto-advances between rounds.
+    """
+    pipeline = DisputePipeline.query.get(pipeline_id)
+    if not pipeline:
+        return jsonify({'error': 'Pipeline not found'}), 404
+    if pipeline.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    if pipeline.state != 'round_review':
+        return jsonify({'error': f'Pipeline is in "{pipeline.state}" state, not "round_review"'}), 400
+
+    agent_config = _get_agent_config(pipeline)
+    max_rounds = agent_config.get('max_rounds', 3)
+
+    if pipeline.round_number >= max_rounds:
+        return jsonify({'error': f'Already at max rounds ({max_rounds})'}), 400
+
+    # Optionally accept updated round_packs for the next round
+    data = request.get_json() or {}
+    if 'round_packs' in data:
+        new_packs = data['round_packs']
+        if isinstance(new_packs, list) and all(p in VALID_PACKS for p in new_packs):
+            agent_config['round_packs'] = new_packs
+            strategy = json.loads(pipeline.strategy_json or '{}')
+            strategy['agent_config'] = agent_config
+            pipeline.strategy_json = json.dumps(strategy)
+
+    # Increment round and advance to strategy
+    pipeline.round_number += 1
+    pipeline.state = 'strategy'
+    db.session.commit()
+
+    # Kick off the pipeline in background
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Starting Round {pipeline.round_number} for pipeline {pipeline.id}")
+
+    thread = threading.Thread(
+        target=_run_pipeline_bg,
+        args=(pipeline.id,),
+        daemon=True,
+    )
+    thread.start()
+
+    return jsonify({
+        'message': f'Round {pipeline.round_number} started',
+        'pipeline_id': pipeline.id,
+        'round_number': pipeline.round_number,
+    })
