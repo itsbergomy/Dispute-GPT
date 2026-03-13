@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dispute Status — {{ client.first_name }} {{ client.last_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/liquid-glass.css') }}">
+</head>
+<body class="glass-body">
+
+<div class="max-w-3xl mx-auto px-4 py-10">
+
+  <!-- Header -->
+  <div class="text-center mb-10 glass-animate-in">
+    <h1 class="text-3xl font-bold glass-text-3d" style="color:var(--text-primary);">Your Dispute Status</h1>
+    <p class="text-lg mt-2" style="color:var(--text-secondary);">{{ client.first_name }} {{ client.last_name }}</p>
+    {% if pipeline %}
+    <div class="inline-block mt-3 px-4 py-1.5 rounded-full text-xs font-semibold"
+         style="background:rgba(255,255,255,0.12);color:var(--text-primary);border:1px solid rgba(255,255,255,0.15);">
+      Pipeline: {{ pipeline.state|replace('_', ' ')|title }} — Round {{ pipeline.round_number }}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if not pipeline %}
+  <div class="glass-card glass-card--heavy glass-p rounded-3xl text-center glass-animate-in">
+    <p class="text-sm" style="color:var(--text-tertiary);">No active dispute pipeline found. Your business representative will set one up for you.</p>
+  </div>
+  {% else %}
+
+  <!-- Round-by-round breakdown -->
+  <div class="space-y-6 glass-stagger">
+    {% for round in rounds %}
+    <div class="glass-card glass-card--heavy glass-p rounded-3xl glass-animate-in">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold glass-text-emboss" style="color:var(--text-primary);">Round {{ round.round_number }}</h3>
+        <div class="flex gap-3 text-xs">
+          <span class="px-2.5 py-1 rounded-full" style="background:rgba(0,113,227,0.15);color:var(--accent);">{{ round.total }} accounts</span>
+          {% if round.sent > 0 %}
+          <span class="px-2.5 py-1 rounded-full" style="background:rgba(52,211,153,0.15);color:#34d399;">{{ round.sent }} sent</span>
+          {% endif %}
+          {% if round.removed > 0 %}
+          <span class="px-2.5 py-1 rounded-full" style="background:rgba(52,211,153,0.25);color:#22c55e;">{{ round.removed }} removed</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        {% for acct in round.accounts %}
+        <div class="glass-inset rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <div class="text-sm font-semibold" style="color:var(--text-primary);">{{ acct.account_name }}</div>
+            <div class="text-xs" style="color:var(--text-tertiary);">{{ acct.bureau|title }}</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <!-- Delivery Status Badge -->
+            {% if acct.delivery_status %}
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium
+              {% if acct.delivery_status == 'delivered' %}
+                " style="background:rgba(52,211,153,0.2);color:#22c55e;">Delivered
+              {% elif acct.delivery_status in ['in_transit', 'processing'] %}
+                " style="background:rgba(251,191,36,0.2);color:#f59e0b;">{{ acct.delivery_status|replace('_',' ')|title }}
+              {% elif acct.delivery_status == 'queued' %}
+                " style="background:rgba(0,113,227,0.15);color:var(--accent);">Queued
+              {% elif acct.delivery_status == 'error' %}
+                " style="background:rgba(255,69,58,0.2);color:#ff453a;">Error
+              {% else %}
+                " style="background:rgba(255,255,255,0.1);color:var(--text-tertiary);">{{ acct.delivery_status|title }}
+              {% endif %}
+            </span>
+            {% endif %}
+
+            <!-- Outcome Badge -->
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium
+              {% if acct.outcome == 'removed' %}
+                " style="background:rgba(52,211,153,0.2);color:#22c55e;">Removed
+              {% elif acct.outcome == 'updated' %}
+                " style="background:rgba(52,211,153,0.15);color:#34d399;">Updated
+              {% elif acct.outcome == 'verified' %}
+                " style="background:rgba(251,191,36,0.2);color:#f59e0b;">Verified
+              {% elif acct.outcome == 'pending' %}
+                " style="background:rgba(255,255,255,0.08);color:var(--text-tertiary);">Pending
+              {% else %}
+                " style="background:rgba(255,255,255,0.08);color:var(--text-tertiary);">{{ acct.outcome|title }}
+              {% endif %}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% endif %}
+
+  <div class="text-center mt-10 text-xs" style="color:var(--text-tertiary);">
+    Powered by <span class="glass-text-emboss font-semibold">DisputeGPT</span>
+  </div>
+
+</div>
+</body>
+</html>

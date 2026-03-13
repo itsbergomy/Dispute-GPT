@@ -58,10 +58,10 @@ CLIENT_CONTEXT_PREAMBLE = (
 )
 
 PACK_INFO = [
-    {"key": "default", "name": "📝 Default Pack", "description": "Your go-to dispute templates — clean, direct, and effective for first-round disputes."},
-    {"key": "arbitration", "name": "⚖️ Arbitration Pack", "description": "Heavy hitters. Arbitration demands under 15 U.S.C. §1681e(b) — for when bureaus won't budge."},
-    {"key": "consumer_law", "name": "🛡️ Consumer Law Pack", "description": "Cite the FCBA, FDCPA, and more — full statutory firepower for stubborn creditors."},
-    {"key": "ACDV_response", "name": "🔍 ACDV Enforcement Pack", "description": "Demand the full ACDV record — method of verification, submission procedure, and FCRA compliance docs. Make them prove it."}
+    {"key": "default", "name": "Default Pack", "description": "Your go-to dispute templates — clean, direct, and effective for first-round disputes."},
+    {"key": "arbitration", "name": "Arbitration Pack", "description": "Heavy hitters. Arbitration demands under 15 U.S.C. §1681e(b) — for when bureaus won't budge."},
+    {"key": "consumer_law", "name": "Consumer Law Pack", "description": "Cite the FCBA, FDCPA, and more — full statutory firepower for stubborn creditors."},
+    {"key": "ACDV_response", "name": "ACDV Enforcement Pack", "description": "Demand the full ACDV record — method of verification, submission procedure, and FCRA compliance docs. Make them prove it."}
 ]
 
 

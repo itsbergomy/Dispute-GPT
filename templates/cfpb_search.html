@@ -1,0 +1,113 @@
+{% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
+
+{% block title %}CFPB Complaint Search{% endblock %}
+
+{% block content %}
+<main class="flex justify-center items-start min-h-[90vh] px-4 py-10">
+  <div class="w-full max-w-4xl glass-animate-in">
+
+    <div class="text-center mb-8">
+      <div class="glass-icon-well mx-auto mb-4" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
+        {{ icons.icon_search(size=28, uid='cf1') }}
+      </div>
+      <h2 class="text-3xl font-bold glass-text-3d" style="color:var(--text-primary);">CFPB Complaint Search</h2>
+      <p class="text-sm mt-1" style="color:var(--text-tertiary);">Search the Consumer Financial Protection Bureau database for complaint narratives</p>
+    </div>
+
+    <!-- Search Form -->
+    <form method="POST" class="glass-card glass-card--heavy glass-p rounded-3xl mb-6">
+      <div class="flex gap-3 items-end">
+        <div class="flex-1">
+          <label class="glass-label block">Company Name</label>
+          <input type="text" name="company" value="{{ company or '' }}" required
+                 class="glass-input w-full" placeholder="e.g., Equifax, Capital One, Experian" />
+        </div>
+        <div class="flex items-center gap-2 pb-2">
+          <label class="flex items-center gap-2 text-sm" style="color:var(--text-primary);">
+            <input type="checkbox" name="narratives_only" {% if narratives_only %}checked{% endif %}
+                   style="accent-color:var(--accent);" />
+            Narratives only
+          </label>
+        </div>
+        <button type="submit" class="glass-btn glass-btn--primary glass-btn--pill glass-shimmer-edge text-sm px-6 py-2.5"
+                style="position:relative;overflow:hidden;flex-shrink:0;">
+          Search
+        </button>
+      </div>
+    </form>
+
+    {% if results %}
+    <!-- Results -->
+    <div class="mb-4 flex items-center justify-between">
+      <span class="text-sm font-semibold glass-text-emboss" style="color:var(--text-primary);">
+        {{ results.total|default(0) }} complaints found for "{{ company }}"
+      </span>
+    </div>
+
+    {% if results.error %}
+    <div class="glass-card glass-card--light rounded-2xl p-5 text-center">
+      <p class="text-sm" style="color:#ff453a;">{{ results.error }}</p>
+    </div>
+    {% elif results.complaints %}
+    <div class="space-y-4 glass-stagger">
+      {% for c in results.complaints %}
+      <div class="glass-card glass-card--light rounded-2xl p-5 glass-animate-in">
+        <div class="flex items-start justify-between gap-4 mb-3">
+          <div>
+            <div class="text-sm font-semibold" style="color:var(--text-primary);">{{ c.product }}</div>
+            {% if c.sub_product %}
+            <div class="text-xs" style="color:var(--text-tertiary);">{{ c.sub_product }}</div>
+            {% endif %}
+          </div>
+          <div class="text-xs flex-shrink-0" style="color:var(--text-tertiary);">{{ c.date_received }}</div>
+        </div>
+
+        <div class="text-sm mb-2" style="color:var(--text-secondary);">
+          <strong>Issue:</strong> {{ c.issue }}{% if c.sub_issue %} — {{ c.sub_issue }}{% endif %}
+        </div>
+
+        {% if c.narrative %}
+        <details class="glass-inset rounded-xl p-4 mb-3">
+          <summary class="text-sm font-medium cursor-pointer" style="color:var(--accent);">View Complaint Narrative</summary>
+          <p class="text-sm mt-3 whitespace-pre-wrap" style="color:var(--text-primary);line-height:1.6;">{{ c.narrative }}</p>
+          <button type="button" class="glass-btn glass-btn--pill text-xs px-3 py-1 mt-3 copy-narrative"
+                  data-text="{{ c.narrative|e }}">
+            Copy to Clipboard
+          </button>
+        </details>
+        {% endif %}
+
+        <div class="flex gap-4 text-xs" style="color:var(--text-tertiary);">
+          {% if c.company_response %}
+          <span><strong>Response:</strong> {{ c.company_response }}</span>
+          {% endif %}
+          {% if c.state %}
+          <span><strong>State:</strong> {{ c.state }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="glass-card glass-card--light rounded-2xl p-6 text-center">
+      <p class="text-sm" style="color:var(--text-tertiary);">No complaints found for "{{ company }}"</p>
+    </div>
+    {% endif %}
+    {% endif %}
+
+  </div>
+</main>
+
+<script>
+document.querySelectorAll('.copy-narrative').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.text;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy to Clipboard'; }, 2000);
+    });
+  });
+});
+</script>
+{% endblock %}

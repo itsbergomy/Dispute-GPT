@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 
 from models import (
     db, DisputePipeline, DisputeAccount, BureauResponse,
-    Client, ClientDisputeLetter, WorkflowSetting
+    Client, ClientDisputeLetter, WorkflowSetting, SupportingDoc
 )
 from services.pipeline_engine import (
     create_pipeline, advance_pipeline, get_pipeline_status,
@@ -110,12 +110,27 @@ def _validate_config(config):
         if not cl or cl.user_id != current_user.id:
             return None, 'Custom letter not found or not yours'
 
+    # Mail options
+    mail_options = config.get('mail_options', {})
+    valid_mail_classes = ('usps_first_class', 'usps_standard', 'usps_priority_mail', 'usps_priority_mail_express')
+    valid_service_levels = ('', 'certified', 'certified_return_receipt')
+    if mail_options:
+        if not isinstance(mail_options, dict):
+            return None, 'mail_options must be a dict'
+        mc = mail_options.get('mail_class', 'usps_first_class')
+        if mc not in valid_mail_classes:
+            return None, f'Invalid mail_class. Valid: {", ".join(valid_mail_classes)}'
+        sl = mail_options.get('servicelevel', '')
+        if sl not in valid_service_levels:
+            return None, f'Invalid servicelevel. Valid: {", ".join(valid_service_levels)}'
+
     cleaned = {
         'mode': mode,
         'max_rounds': max_rounds,
         'round_packs': round_packs,
         'send_to': send_to,
         'creditor_addresses': creditor_addresses if send_to == 'creditors' else [],
+        'mail_options': mail_options if mail_options else {},
     }
     if custom_letter_id is not None:
         cleaned['custom_letter_id'] = custom_letter_id
@@ -211,6 +226,8 @@ def approve_pipeline(pipeline_id):
 
     success = approve_pipeline_letters(pipeline_id)
     if success:
+        # Run delivery in background so the HTTP response returns immediately
+        _advance(pipeline_id)
         return jsonify({'message': 'Letters approved. Delivery started.'})
     else:
         return jsonify({'error': 'Failed to approve letters'}), 500
@@ -440,3 +457,198 @@ def start_next_round(pipeline_id):
         'pipeline_id': pipeline.id,
         'round_number': pipeline.round_number,
     })
+
+
+@pipeline_bp.route('/pipeline/<int:pipeline_id>/rounds', methods=['GET'])
+@login_required
+def get_pipeline_rounds(pipeline_id):
+    """Return accounts and letters grouped by round number."""
+    pipeline = DisputePipeline.query.get(pipeline_id)
+    if not pipeline or pipeline.user_id != current_user.id:
+        return jsonify({'error': 'Pipeline not found'}), 404
+
+    accounts = DisputeAccount.query.filter_by(pipeline_id=pipeline_id).order_by(
+        DisputeAccount.round_number, DisputeAccount.created_at
+    ).all()
+
+    rounds = {}
+    for acct in accounts:
+        rn = acct.round_number or 1
+        if rn not in rounds:
+            rounds[rn] = {'round_number': rn, 'accounts': [], 'letters': []}
+        letter_data = None
+        if acct.letter:
+            letter_data = {
+                'id': acct.letter.id,
+                'status': acct.letter.status,
+                'delivery_status': acct.letter.delivery_status,
+                'mail_class': acct.letter.mail_class,
+                'mailed_at': acct.letter.mailed_at.isoformat() if acct.letter.mailed_at else None,
+                'tracking_number': acct.letter.tracking_number,
+                'docupost_cost': acct.letter.docupost_cost,
+            }
+            rounds[rn]['letters'].append(letter_data)
+        rounds[rn]['accounts'].append({
+            'id': acct.id,
+            'account_name': acct.account_name,
+            'account_number': acct.account_number,
+            'bureau': acct.bureau,
+            'status': acct.status,
+            'issue': acct.issue,
+            'balance': acct.balance,
+            'outcome': acct.outcome,
+            'mailed_at': acct.mailed_at.isoformat() if acct.mailed_at else None,
+            'letter': letter_data,
+        })
+
+    return jsonify({
+        'pipeline_id': pipeline_id,
+        'current_round': pipeline.round_number,
+        'rounds': [rounds[k] for k in sorted(rounds.keys())],
+    })
+
+
+# ─── Letter Tracking ───
+
+@pipeline_bp.route('/pipeline/<int:pipeline_id>/refresh-tracking', methods=['POST'])
+@login_required
+def refresh_tracking(pipeline_id):
+    """Poll DocuPost for delivery status updates on all letters in this pipeline."""
+    pipeline = DisputePipeline.query.get(pipeline_id)
+    if not pipeline or pipeline.user_id != current_user.id:
+        return jsonify({'error': 'Pipeline not found'}), 404
+
+    from services.tracking import poll_letter_status
+    accounts = DisputeAccount.query.filter_by(pipeline_id=pipeline_id).all()
+    results = []
+    for acct in accounts:
+        if acct.letter and acct.letter.docupost_letter_id:
+            r = poll_letter_status(acct.letter.id, user_id=current_user.id)
+            results.append({
+                'account_id': acct.id,
+                'account_name': acct.account_name,
+                'delivery_status': r.get('status'),
+                'tracking_number': r.get('tracking_number'),
+                'updated': r.get('updated', False),
+            })
+    return jsonify({'results': results})
+
+
+@pipeline_bp.route('/pipeline/<int:pipeline_id>/tracking', methods=['GET'])
+@login_required
+def get_tracking(pipeline_id):
+    """Return tracking data for all letters, grouped by round."""
+    pipeline = DisputePipeline.query.get(pipeline_id)
+    if not pipeline or pipeline.user_id != current_user.id:
+        return jsonify({'error': 'Pipeline not found'}), 404
+
+    accounts = DisputeAccount.query.filter_by(pipeline_id=pipeline_id).order_by(
+        DisputeAccount.round_number, DisputeAccount.created_at
+    ).all()
+
+    rounds = {}
+    for acct in accounts:
+        rn = acct.round_number or 1
+        if rn not in rounds:
+            rounds[rn] = []
+        ltr = acct.letter
+        rounds[rn].append({
+            'account_name': acct.account_name,
+            'bureau': acct.bureau,
+            'round_number': rn,
+            'delivery_status': ltr.delivery_status if ltr else None,
+            'mail_class': ltr.mail_class if ltr else None,
+            'service_level': ltr.service_level if ltr else None,
+            'tracking_number': ltr.tracking_number if ltr else None,
+            'mailed_at': ltr.mailed_at.isoformat() if ltr and ltr.mailed_at else None,
+            'last_updated': ltr.delivery_status_updated_at.isoformat() if ltr and ltr.delivery_status_updated_at else None,
+            'cost': ltr.docupost_cost if ltr else None,
+        })
+
+    return jsonify({
+        'pipeline_id': pipeline_id,
+        'rounds': {str(k): v for k, v in sorted(rounds.items())},
+    })
+
+
+# ─── Supporting Docs ───
+
+@pipeline_bp.route('/pipeline/<int:pipeline_id>/account/<int:account_id>/docs', methods=['GET'])
+@login_required
+def list_account_docs(pipeline_id, account_id):
+    """List supporting docs for a specific dispute account."""
+    account = DisputeAccount.query.get(account_id)
+    if not account or account.pipeline_id != pipeline_id:
+        return jsonify({'error': 'Account not found'}), 404
+
+    docs = SupportingDoc.query.filter_by(dispute_account_id=account_id).order_by(
+        SupportingDoc.uploaded_at.desc()
+    ).all()
+
+    return jsonify([{
+        'id': d.id,
+        'filename': d.filename,
+        'doc_type': d.doc_type,
+        'description': d.description,
+        'include_in_package': d.include_in_package,
+        'uploaded_at': d.uploaded_at.isoformat() if d.uploaded_at else None,
+    } for d in docs])
+
+
+@pipeline_bp.route('/pipeline/<int:pipeline_id>/account/<int:account_id>/docs', methods=['POST'])
+@login_required
+def upload_account_doc(pipeline_id, account_id):
+    """Upload a supporting document for a dispute account."""
+    account = DisputeAccount.query.get(account_id)
+    if not account or account.pipeline_id != pipeline_id:
+        return jsonify({'error': 'Account not found'}), 404
+
+    pipeline = DisputePipeline.query.get(pipeline_id)
+    if not pipeline or pipeline.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'error': 'No file provided'}), 400
+
+    upload_folder = os.path.join(
+        os.environ.get('UPLOAD_FOLDER', 'static/uploads'),
+        str(pipeline.client_id), 'supporting_docs'
+    )
+    os.makedirs(upload_folder, exist_ok=True)
+    filename = secure_filename(f"{account_id}_{file.filename}")
+    filepath = os.path.join(upload_folder, filename)
+    file.save(filepath)
+
+    doc = SupportingDoc(
+        user_id=current_user.id,
+        client_id=pipeline.client_id,
+        dispute_account_id=account_id,
+        round_number=pipeline.round_number,
+        filename=filename,
+        file_url=filepath,
+        doc_type=request.form.get('doc_type', 'other'),
+        description=request.form.get('description', ''),
+        include_in_package=request.form.get('include_in_package', 'true').lower() == 'true',
+    )
+    db.session.add(doc)
+    db.session.commit()
+
+    return jsonify({'ok': True, 'id': doc.id, 'filename': doc.filename})
+
+
+@pipeline_bp.route('/pipeline/doc/<int:doc_id>', methods=['DELETE'])
+@login_required
+def delete_account_doc(doc_id):
+    """Delete a supporting document."""
+    doc = SupportingDoc.query.get(doc_id)
+    if not doc or doc.user_id != current_user.id:
+        return jsonify({'error': 'Document not found'}), 404
+
+    # Remove file from disk
+    if doc.file_url and os.path.exists(doc.file_url):
+        os.remove(doc.file_url)
+
+    db.session.delete(doc)
+    db.session.commit()
+    return jsonify({'ok': True})

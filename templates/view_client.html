@@ -116,13 +116,27 @@
     </div>
     {% endif %}
 
-    <!-- Accounts being disputed -->
+    <!-- Round Filter Tabs -->
     {% if pipeline_status.accounts %}
+    {% set all_rounds = pipeline_status.accounts|map(attribute='round_number')|unique|sort|list %}
     <div class="mb-3">
+      <div class="flex items-center gap-2 mb-3 flex-wrap">
+        <button onclick="filterRound('all')" data-round-tab="all"
+                class="glass-btn glass-btn--pill text-xs px-3 py-1 font-semibold"
+                style="background:var(--accent);color:#fff;">All Rounds</button>
+        {% for rn in all_rounds %}
+        <button onclick="filterRound({{ rn }})" data-round-tab="{{ rn }}"
+                class="glass-btn glass-btn--pill text-xs px-3 py-1 font-semibold"
+                style="background:rgba(255,255,255,0.08);color:var(--text-secondary);">Round {{ rn }}</button>
+        {% endfor %}
+      </div>
+
       <p class="text-xs font-semibold mb-2" style="color:var(--text-secondary);">Accounts in Dispute</p>
       <div>
-        {% for a in pipeline_status.accounts if a.round_number == pipeline_status.round_number %}
-        <div class="glass-list-item glass-raised flex items-center justify-between text-sm" style="transition:box-shadow 0.2s ease,transform 0.2s ease;box-shadow:2px 2px 8px rgba(0,0,0,0.06),-1px -1px 5px rgba(255,255,255,0.3);">
+        {% for a in pipeline_status.accounts %}
+        <div class="glass-list-item glass-raised flex items-center justify-between text-sm acct-row"
+             data-round="{{ a.round_number }}"
+             style="transition:box-shadow 0.2s ease,transform 0.2s ease;box-shadow:2px 2px 8px rgba(0,0,0,0.06),-1px -1px 5px rgba(255,255,255,0.3);">
           <div class="flex items-center gap-2">
             {% if a.letter_id and pipeline_status.state == 'review' %}
             <button onclick="openLetterEditor({{ a.letter_id }}, '{{ a.account_name }} — {{ a.bureau }}')"
@@ -136,8 +150,18 @@
             <span class="font-medium">{{ a.account_name }}</span>
             <span class="text-xs" style="color:var(--text-tertiary);">{{ a.account_number }}</span>
             <span class="text-xs" style="color:var(--text-tertiary);">· {{ a.bureau }}</span>
+            <span class="text-xs px-1.5 py-0.5 rounded-full" style="background:rgba(255,255,255,0.08);color:var(--text-tertiary);">R{{ a.round_number }}</span>
           </div>
           <div class="flex items-center gap-2">
+            <!-- Attach Doc button -->
+            {% if a.id %}
+            <button onclick="openDocUpload({{ a.id }}, '{{ a.account_name }}')"
+                    class="glass-badge text-xs cursor-pointer hover:opacity-80"
+                    style="background:rgba(0,113,227,0.1);color:var(--accent);" title="Attach supporting document">
+              + Doc
+            </button>
+            {% endif %}
+
             {% if a.docupost_letter_id %}
               <a href="https://app.docupost.com/letters" target="_blank"
                  class="glass-badge glass-badge--info text-xs cursor-pointer hover:opacity-80"
@@ -160,6 +184,44 @@
               <span class="glass-badge glass-badge--warning text-xs">No Response</span>
             {% endif %}
           </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Letter Tracking Section -->
+    <div class="mb-3">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-semibold" style="color:var(--text-secondary);">Delivery Tracking</p>
+        <button onclick="refreshTracking({{ pipeline_status.id }})" id="refreshTrackingBtn"
+                class="glass-btn glass-btn--pill text-xs px-3 py-1 font-semibold inline-flex items-center gap-1"
+                style="background:rgba(0,113,227,0.1);color:var(--accent);">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Refresh Tracking
+        </button>
+      </div>
+      <div id="trackingGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {% for a in pipeline_status.accounts if a.docupost_letter_id %}
+        <div class="glass-inset rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <div class="text-xs font-semibold" style="color:var(--text-primary);">{{ a.account_name }}</div>
+            <div class="text-xs" style="color:var(--text-tertiary);">{{ a.bureau }} · R{{ a.round_number }}</div>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-xs font-medium
+            {% if a.delivery_status == 'delivered' %}
+              " style="background:rgba(52,211,153,0.2);color:#22c55e;">Delivered
+            {% elif a.delivery_status in ['in_transit', 'processing'] %}
+              " style="background:rgba(251,191,36,0.2);color:#f59e0b;">{{ (a.delivery_status or '')|replace('_',' ')|title }}
+            {% elif a.delivery_status == 'queued' %}
+              " style="background:rgba(0,113,227,0.15);color:var(--accent);">Queued
+            {% elif a.delivery_status == 'error' %}
+              " style="background:rgba(255,69,58,0.2);color:#ff453a;">Error
+            {% else %}
+              " style="background:rgba(255,255,255,0.08);color:var(--text-tertiary);">{{ (a.delivery_status or 'Pending')|title }}
+            {% endif %}
+          </span>
         </div>
         {% endfor %}
       </div>
@@ -441,17 +503,19 @@
           </a>
           {% endif %}
 
-          {% if client.notes %}
-          <div class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-4">
+          <button type="button" id="openNotesBtn"
+             class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-4 hover:scale-[1.01] transition-all duration-200 w-full text-left"
+             onmouseenter="this.classList.add('glass-raised')" onmouseleave="this.classList.remove('glass-raised')">
             <div class="glass-icon-well flex items-center justify-center" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;">
               {{ icons.icon_notes(size=22, uid='doc4') }}
             </div>
             <div>
-              <div class="text-sm font-semibold">Notes</div>
-              <div class="text-xs" style="color:var(--text-tertiary);">{{ client.notes[:60] }}{% if client.notes|length > 60 %}...{% endif %}</div>
+              <div class="text-sm font-semibold" style="color:var(--text-primary);">Notes</div>
+              <div class="text-xs" id="notesPreviewText" style="color:var(--text-tertiary);">
+                {% if client.notes %}{{ client.notes[:60] }}{% if client.notes|length > 60 %}...{% endif %}{% else %}Add notes{% endif %}
+              </div>
             </div>
-          </div>
-          {% endif %}
+          </button>
         </div>
 
         <!-- Correspondence -->
@@ -591,8 +655,186 @@
         </div>
       {% endif %}
 
+      <!-- Client Portal Card -->
+      <div class="glass-card glass-card--heavy rounded-3xl p-5">
+        <h3 class="text-sm font-bold mb-3 glass-text-3d">Client Portal</h3>
+        <p class="text-xs mb-3" style="color:var(--text-tertiary);">Share a read-only status link with your client — no login required.</p>
+
+        {% if portal_token %}
+        <div class="glass-inset rounded-xl p-3 mb-3">
+          <div class="flex items-center gap-2">
+            <input type="text" id="portalLinkInput" readonly
+                   value="{{ request.host_url }}portal/{{ portal_token.token }}"
+                   class="glass-input text-xs flex-1 !py-1.5" style="font-family:'JetBrains Mono',monospace;" />
+            <button onclick="copyPortalLink()" id="copyPortalBtn"
+                    class="glass-btn glass-btn--primary glass-btn--pill text-xs px-3 py-1.5 flex-shrink-0">
+              Copy
+            </button>
+          </div>
+          {% if portal_token.expires_at %}
+          <div class="text-xs mt-2" style="color:var(--text-tertiary);">
+            Expires: {{ portal_token.expires_at.strftime('%b %d, %Y') }}
+          </div>
+          {% endif %}
+        </div>
+        <button onclick="revokePortalLink({{ client.id }})"
+                class="glass-btn glass-btn--pill text-xs px-3 py-1.5"
+                style="background:rgba(239,68,68,0.08);color:#ef4444;border:1px solid rgba(239,68,68,0.15);">
+          Revoke Link
+        </button>
+        {% else %}
+        <button onclick="generatePortalLink({{ client.id }})" id="genPortalBtn"
+                class="glass-btn glass-btn--primary glass-btn--pill text-xs px-4 py-1.5 glass-shimmer-edge"
+                style="position:relative;overflow:hidden;">
+          Generate Portal Link
+        </button>
+        {% endif %}
+        <div id="portalStatus" class="text-xs mt-2" style="color:var(--text-tertiary);"></div>
+      </div>
+
     </div>
   </div>
+
+  <!-- ═══ Supporting Doc Upload Modal ═══ -->
+  <div id="docUploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
+       style="background:rgba(0,0,0,0.5);backdrop-filter:blur(6px);">
+    <div class="glass-card glass-card--heavy rounded-3xl p-6 w-full max-w-md"
+         style="background:var(--glass-bg-heavy);">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="docUploadTitle" class="text-lg font-bold" style="color:var(--text-primary);">Attach Document</h3>
+        <button onclick="closeDocUpload()" class="text-xl cursor-pointer" style="color:var(--text-tertiary);">&times;</button>
+      </div>
+      <form id="docUploadForm" enctype="multipart/form-data">
+        <input type="hidden" id="docAccountId" name="account_id" />
+        <div class="space-y-3">
+          <div>
+            <label class="glass-label text-xs mb-1">Document Type</label>
+            <select name="doc_type" class="glass-select w-full text-sm">
+              <option value="bill">Bill / Statement</option>
+              <option value="prior_response">Prior Response</option>
+              <option value="identity">Identity Document</option>
+              <option value="correspondence">Correspondence</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="glass-label text-xs mb-1">File</label>
+            <input type="file" name="file" required class="glass-input w-full text-sm" accept=".pdf,.png,.jpg,.jpeg" />
+          </div>
+          <div>
+            <label class="glass-label text-xs mb-1">Description (optional)</label>
+            <input type="text" name="description" class="glass-input w-full text-sm" placeholder="Brief description..." />
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="checkbox" name="include_in_package" checked style="accent-color:var(--accent);" />
+            <label class="text-xs" style="color:var(--text-primary);">Include in mailed package</label>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-4">
+          <span id="docUploadStatus" class="text-xs"></span>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeDocUpload()"
+                    class="glass-btn glass-btn--pill px-4 py-2 text-xs" style="background:rgba(255,255,255,0.1);">Cancel</button>
+            <button type="submit"
+                    class="glass-btn glass-btn--primary glass-btn--pill px-5 py-2 text-sm font-semibold">Upload</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══ Floating Notes Window ═══ -->
+  <div id="notesWindow" style="
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    width: 420px;
+    max-width: 92vw;
+    max-height: 70vh;
+    flex-direction: column;
+    background: rgba(255,255,255,0.13);
+    backdrop-filter: blur(32px) saturate(190%) brightness(1.06);
+    -webkit-backdrop-filter: blur(32px) saturate(190%) brightness(1.06);
+    border: 1px solid rgba(255,255,255,0.30);
+    border-radius: 16px;
+    box-shadow:
+      0 24px 80px rgba(0,0,0,0.18),
+      0 8px 28px rgba(0,0,0,0.10),
+      0 2px 8px rgba(0,0,0,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.50),
+      inset 0 -1px 0 rgba(255,255,255,0.06);
+    opacity: 0;
+    z-index: 200;
+    overflow: hidden;
+  ">
+    <!-- Title Bar -->
+    <div id="notesTitlebar" style="
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0.6rem 1rem 0.55rem 0.85rem;
+      background: rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      flex-shrink: 0;
+    ">
+      <button id="closeNotesBtn" style="
+        width: 14px; height: 14px; border-radius: 50%;
+        background: linear-gradient(135deg, #ff6058, #e0443e);
+        border: 1px solid rgba(0,0,0,0.12);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; cursor: pointer;
+        transition: all 0.2s ease;
+      " title="Close"
+         onmouseenter="this.style.background='linear-gradient(135deg,#ff7b74,#ff6058)';this.style.boxShadow='0 0 6px rgba(255,96,88,0.4)';this.querySelector('svg').style.opacity='1'"
+         onmouseleave="this.style.background='linear-gradient(135deg,#ff6058,#e0443e)';this.style.boxShadow='none';this.querySelector('svg').style.opacity='0'"
+      >
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none" style="opacity:0;transition:opacity .15s;">
+          <path d="M1 1L7 7M7 1L1 7" stroke="rgba(80,0,0,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:center;margin-right:14px;">
+        <span class="glass-text-emboss" style="font-size:0.8rem;font-weight:600;color:var(--text-primary);letter-spacing:0.01em;">Client Notes</span>
+      </div>
+    </div>
+
+    <!-- Notes Content -->
+    <div style="padding:1rem;flex:1;display:flex;flex-direction:column;gap:0.75rem;overflow-y:auto;">
+      <textarea id="notesTextarea"
+        class="glass-input glass-textarea w-full"
+        style="min-height:180px;resize:vertical;font-size:0.85rem;font-family:'Plus Jakarta Sans',sans-serif;"
+        placeholder="Write notes about this client..."></textarea>
+      <div class="flex items-center justify-between">
+        <span id="notesSaveStatus" class="text-xs" style="color:var(--text-tertiary);"></span>
+        <button type="button" id="notesSaveBtn" class="glass-btn glass-btn--primary glass-btn--pill glass-shimmer-edge text-xs px-4 py-1.5" style="position:relative;overflow:hidden;">
+          Save Notes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes notes-open {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+      60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+    @keyframes notes-close {
+      0%   { opacity: 1; }
+      100% { opacity: 0; transform: scale(0.92); }
+    }
+    #notesWindow.is-open {
+      display: flex !important;
+      animation: notes-open 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    #notesWindow.is-closing {
+      animation: notes-close 0.22s ease-in forwards;
+    }
+    #notesTitlebar:active { cursor: grabbing; }
+  </style>
 
 </main>
 {% endblock %}
@@ -706,6 +948,240 @@
     .catch(err => {
       statusEl.textContent = 'Error: ' + err.message;
       statusEl.style.color = '#ff453a';
+    });
+  }
+
+  // ── Notes floating window ──
+  (function() {
+    const win = document.getElementById('notesWindow');
+    const titlebar = document.getElementById('notesTitlebar');
+    const openBtn = document.getElementById('openNotesBtn');
+    const closeBtn = document.getElementById('closeNotesBtn');
+    const textarea = document.getElementById('notesTextarea');
+    const saveBtn = document.getElementById('notesSaveBtn');
+    const statusEl = document.getElementById('notesSaveStatus');
+    const previewEl = document.getElementById('notesPreviewText');
+    const clientId = {{ client.id }};
+
+    if (!win || !openBtn) return;
+
+    // Open
+    openBtn.addEventListener('click', () => {
+      win.style.top = '50%';
+      win.style.left = '50%';
+      win.style.transform = 'translate(-50%, -50%) scale(0.85)';
+      win.classList.remove('is-closing');
+      win.classList.add('is-open');
+      statusEl.textContent = '';
+      // Load notes via AJAX
+      fetch('/clients/' + clientId + '/notes')
+        .then(r => r.json())
+        .then(data => { textarea.value = data.notes || ''; })
+        .catch(() => { textarea.value = ''; });
+    });
+
+    // Close
+    function closeNotes() {
+      // Resolve to pixel coords first to avoid jump
+      const rect = win.getBoundingClientRect();
+      win.style.transform = 'none';
+      win.style.left = rect.left + 'px';
+      win.style.top = rect.top + 'px';
+      win.classList.add('is-closing');
+      win.addEventListener('animationend', function handler() {
+        win.classList.remove('is-open', 'is-closing');
+        win.style.display = 'none';
+        win.removeEventListener('animationend', handler);
+      });
+    }
+    closeBtn.addEventListener('click', closeNotes);
+
+    // Save
+    saveBtn.addEventListener('click', () => {
+      statusEl.textContent = 'Saving...';
+      statusEl.style.color = 'var(--text-secondary)';
+      fetch('/clients/' + clientId + '/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: textarea.value })
+      })
+      .then(r => r.json())
+      .then(data => {
+        statusEl.textContent = 'Saved!';
+        statusEl.style.color = '#248a3d';
+        // Update the preview text on the card
+        if (data.notes) {
+          previewEl.textContent = data.notes.length > 60 ? data.notes.substring(0, 60) + '...' : data.notes;
+        } else {
+          previewEl.textContent = 'Add notes';
+        }
+        setTimeout(() => { statusEl.textContent = ''; }, 2000);
+      })
+      .catch(err => {
+        statusEl.textContent = 'Error saving';
+        statusEl.style.color = '#ff453a';
+      });
+    });
+
+    // Drag
+    let isDragging = false, startX, startY, origX, origY;
+    function resolvePosition() {
+      const rect = win.getBoundingClientRect();
+      win.style.transform = 'none';
+      win.style.left = rect.left + 'px';
+      win.style.top = rect.top + 'px';
+    }
+    // Auto-resolve after open animation ends
+    win.addEventListener('animationend', function handler(e) {
+      if (e.animationName === 'notes-open') {
+        resolvePosition();
+      }
+    });
+
+    titlebar.addEventListener('mousedown', e => {
+      if (e.target.closest('#closeNotesBtn')) return;
+      isDragging = true;
+      const rect = win.getBoundingClientRect();
+      origX = rect.left; origY = rect.top;
+      startX = e.clientX; startY = e.clientY;
+      win.style.transform = 'none';
+      win.style.left = origX + 'px';
+      win.style.top = origY + 'px';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      win.style.left = (origX + e.clientX - startX) + 'px';
+      win.style.top  = (origY + e.clientY - startY) + 'px';
+    });
+    document.addEventListener('mouseup', () => { isDragging = false; });
+  })();
+
+  // ── Round filter tabs ──
+  function filterRound(round) {
+    const rows = document.querySelectorAll('.acct-row');
+    const tabs = document.querySelectorAll('[data-round-tab]');
+    rows.forEach(r => {
+      r.style.display = (round === 'all' || r.dataset.round == round) ? '' : 'none';
+    });
+    tabs.forEach(t => {
+      if (t.dataset.roundTab == round) {
+        t.style.background = 'var(--accent)';
+        t.style.color = '#fff';
+      } else {
+        t.style.background = 'rgba(255,255,255,0.08)';
+        t.style.color = 'var(--text-secondary)';
+      }
+    });
+  }
+
+  // ── Refresh tracking ──
+  function refreshTracking(pipelineId) {
+    const btn = document.getElementById('refreshTrackingBtn');
+    btn.textContent = 'Refreshing...';
+    btn.disabled = true;
+    fetch('/api/pipeline/' + pipelineId + '/refresh-tracking', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          btn.textContent = 'Error';
+          setTimeout(() => { btn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Refresh Tracking'; btn.disabled = false; }, 2000);
+        } else {
+          window.location.reload();
+        }
+      })
+      .catch(() => {
+        btn.textContent = 'Error';
+        setTimeout(() => { btn.innerHTML = 'Refresh Tracking'; btn.disabled = false; }, 2000);
+      });
+  }
+
+  // ── Supporting doc upload ──
+  function openDocUpload(accountId, accountName) {
+    document.getElementById('docAccountId').value = accountId;
+    document.getElementById('docUploadTitle').textContent = 'Attach Doc — ' + accountName;
+    document.getElementById('docUploadStatus').textContent = '';
+    document.getElementById('docUploadModal').classList.remove('hidden');
+  }
+
+  function closeDocUpload() {
+    document.getElementById('docUploadModal').classList.add('hidden');
+  }
+
+  document.getElementById('docUploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const status = document.getElementById('docUploadStatus');
+    const accountId = document.getElementById('docAccountId').value;
+    const pipelineId = {{ pipeline_status.id if pipeline_status else 0 }};
+    status.textContent = 'Uploading...';
+    status.style.color = 'var(--text-secondary)';
+
+    const fd = new FormData(this);
+    fetch('/api/pipeline/' + pipelineId + '/account/' + accountId + '/docs', {
+      method: 'POST',
+      body: fd
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        status.textContent = data.error;
+        status.style.color = '#ff453a';
+      } else {
+        status.textContent = 'Uploaded!';
+        status.style.color = '#248a3d';
+        setTimeout(() => closeDocUpload(), 1000);
+      }
+    })
+    .catch(err => {
+      status.textContent = 'Error: ' + err.message;
+      status.style.color = '#ff453a';
+    });
+  });
+
+  // ── Client Portal ──
+  function generatePortalLink(clientId) {
+    const btn = document.getElementById('genPortalBtn');
+    const status = document.getElementById('portalStatus');
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    fetch('/clients/' + clientId + '/portal/generate', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          status.textContent = data.error;
+          status.style.color = '#ff453a';
+          btn.disabled = false;
+          btn.textContent = 'Generate Portal Link';
+        } else {
+          window.location.reload();
+        }
+      })
+      .catch(() => {
+        status.textContent = 'Network error';
+        btn.disabled = false;
+        btn.textContent = 'Generate Portal Link';
+      });
+  }
+
+  function revokePortalLink(clientId) {
+    if (!confirm('Revoke this client\'s portal access?')) return;
+    fetch('/clients/' + clientId + '/portal/revoke', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          document.getElementById('portalStatus').textContent = data.error;
+        } else {
+          window.location.reload();
+        }
+      });
+  }
+
+  function copyPortalLink() {
+    const input = document.getElementById('portalLinkInput');
+    const btn = document.getElementById('copyPortalBtn');
+    navigator.clipboard.writeText(input.value).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
     });
   }
 

@@ -150,9 +150,9 @@ def _parse_experian(full_text):
     blocks = full_text.split("Account name")
     negative_items = []
 
-    grid_regex = re.compile(r'\b(?:30|60|90|120|C|)\b')
+    grid_regex = re.compile(r'\b(?:30|60|90|120|C)\b')
     clean_regex = re.compile(
-        r'\b(?:open|current|paid(?:\s+as\s+agreed)?|closed|never\s+late|'
+        r'\b(?:open|current|(?:pays|paid)(?:\s+\w+)*\s+as\s+agreed|closed|never\s+late|'
         r'exceptional\s+payment\s+history)\b',
         re.IGNORECASE
     )

@@ -5,6 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
 from sqlalchemy.orm import backref
 import json
+import secrets
 
 
 db = SQLAlchemy()
@@ -72,6 +73,7 @@ class Correspondence(db.Model):
      filename = db.Column(db.String(255), nullable=False)
      file_url = db.Column(db.String(255), nullable=False)
      description = db.Column(db.Text, nullable=True)
+     round_number = db.Column(db.Integer, default=1)
 
 class Client(db.Model):
     __tablename__ = 'clients'
@@ -121,10 +123,15 @@ class ClientDisputeLetter(db.Model):
     status = db.Column(db.String(50), default='Draft')  # Draft / Approved / Sent
     template_name = db.Column(db.String(150), nullable=True)
     pdf_url = db.Column(db.String(500), nullable=True)
+    round_number = db.Column(db.Integer, default=1)
+    mail_class = db.Column(db.String(50), default='usps_first_class')
+    service_level = db.Column(db.String(50), nullable=True)
     # DocuPost tracking
     docupost_letter_id = db.Column(db.String(100), nullable=True)
     docupost_cost = db.Column(db.Float, nullable=True)
     delivery_status = db.Column(db.String(50), nullable=True)  # queued / processing / in_transit / delivered / error
+    delivery_status_updated_at = db.Column(db.DateTime, nullable=True)
+    tracking_number = db.Column(db.String(100), nullable=True)
     mailed_at = db.Column(db.DateTime, nullable=True)
     client = db.relationship('Client', backref='letters')
 
@@ -272,3 +279,59 @@ class Message(db.Model):
     from_business = db.Column(db.Boolean, nullable=False)  # True if business -> client
     body = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ─── Beta Features: BYOK, Supporting Docs, Client Portal ───
+
+class UserSetting(db.Model):
+    """Encrypted key-value settings per user (BYOK API keys, preferences)."""
+    __tablename__ = 'user_settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=False)
+    key = db.Column(db.String(50), nullable=False)
+    value = db.Column(db.Text, nullable=False)  # encrypted for sensitive keys
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'key', name='uq_user_setting'),)
+    user = db.relationship('User', backref='settings')
+
+
+class SupportingDoc(db.Model):
+    """Supporting documents attached to specific dispute accounts."""
+    __tablename__ = 'supporting_docs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('Users.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True)
+    dispute_account_id = db.Column(db.Integer, db.ForeignKey('dispute_accounts.id'), nullable=True)
+    round_number = db.Column(db.Integer, default=1)
+    filename = db.Column(db.String(255), nullable=False)
+    file_url = db.Column(db.String(255), nullable=False)
+    doc_type = db.Column(db.String(50), nullable=True)  # bill, prior_response, identity, correspondence, other
+    description = db.Column(db.Text, nullable=True)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    include_in_package = db.Column(db.Boolean, default=True)  # merge into mailed PDF
+
+    user = db.relationship('User', backref='supporting_docs')
+    client = db.relationship('Client', backref='supporting_docs')
+    dispute_account = db.relationship('DisputeAccount', backref='supporting_docs')
+
+
+class ClientPortalToken(db.Model):
+    """Unique public link for clients to view their dispute status (no login)."""
+    __tablename__ = 'client_portal_tokens'
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False, unique=True)
+    token = db.Column(db.String(64), nullable=False, unique=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=True)  # null = never expires
+    is_active = db.Column(db.Boolean, default=True)
+
+    client = db.relationship('Client', backref=backref('portal_token', uselist=False))
+
+    @staticmethod
+    def generate_token():
+        return secrets.token_urlsafe(32)

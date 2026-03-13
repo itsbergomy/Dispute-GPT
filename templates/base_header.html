@@ -121,6 +121,7 @@
           {% endfor %}
         </div>
 
+        <a href="{{ url_for('disputes.settings_page') }}" class="text-base font-medium" style="color:var(--text-secondary);">Settings</a>
         <a href="{{ url_for('logout') }}" class="text-base font-medium">Logout</a>
 
       {% else %}
