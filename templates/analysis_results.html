@@ -1,4 +1,5 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 {% block title %}Credit Analysis Complete{% endblock %}
 
 {% block content %}
@@ -6,77 +7,99 @@
   <div class="max-w-5xl mx-auto space-y-10">
 
     <a href="{% if current_user.is_authenticated and current_user.plan == 'business' %}{{ url_for('business_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}"
-       class="glass-btn glass-btn--ghost inline-flex items-center gap-1 text-sm">← Back</a>
+       class="glass-btn glass-btn--ghost inline-flex items-center gap-1 text-sm">&larr; Back</a>
 
     <!-- Header -->
-    <div class="glass-card glass-card--heavy glass-p-lg text-center">
-      <h1 class="text-3xl font-extrabold text-blue-900">Credit Analysis Complete</h1>
-      <p class="text-gray-600 mt-2">AI‐Powered Analysis for {{ user_name }}</p>
+    <div class="glass-card glass-card--heavy glass-p-lg text-center glass-animate-in">
+      <div class="glass-icon-well mx-auto mb-4" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
+        {{ icons.icon_chart(size=28, uid='ar1') }}
+      </div>
+      <h1 class="text-3xl font-extrabold glass-text-chrome" style="color:var(--text-primary);">Credit Analysis Complete</h1>
+      <p class="mt-2" style="color:var(--text-secondary);">AI-Powered Analysis for {{ user_name }}</p>
     </div>
 
     <!-- Metrics Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div class="glass-metric glass-metric--blue glass-p text-center">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 glass-stagger">
+      <div class="glass-metric glass-metric--blue glass-p text-center glass-raised" style="transition:box-shadow 0.3s ease,transform 0.3s ease;">
         <h3 class="glass-metric__label">FICO Score</h3>
-        <p class="glass-metric__value">{{ fico_score }}</p>
+        <p class="glass-metric__value glass-text-emboss">{{ fico_score }}</p>
       </div>
-      <div class="glass-metric glass-metric--red glass-p text-center">
+      <div class="glass-metric glass-metric--red glass-p text-center glass-raised" style="transition:box-shadow 0.3s ease,transform 0.3s ease;">
         <h3 class="glass-metric__label">Utilization</h3>
-        <p class="glass-metric__value">{{ utilization_pct }}%</p>
+        <p class="glass-metric__value glass-text-emboss">{{ utilization_pct }}%</p>
       </div>
-      <div class="glass-metric glass-metric--yellow glass-p text-center">
+      <div class="glass-metric glass-metric--yellow glass-p text-center glass-raised" style="transition:box-shadow 0.3s ease,transform 0.3s ease;">
         <h3 class="glass-metric__label">Collections</h3>
-        <p class="glass-metric__value">{{ num_collections }}</p>
+        <p class="glass-metric__value glass-text-emboss">{{ num_collections }}</p>
       </div>
-      <div class="glass-metric glass-metric--purple glass-p text-center">
+      <div class="glass-metric glass-metric--purple glass-p text-center glass-raised" style="transition:box-shadow 0.3s ease,transform 0.3s ease;">
         <h3 class="glass-metric__label">Total Debt</h3>
-        <p class="glass-metric__value">${{ total_debt }}</p>
+        <p class="glass-metric__value glass-text-emboss">${{ total_debt }}</p>
       </div>
-      <div class="glass-metric glass-metric--pink glass-p text-center">
+      <div class="glass-metric glass-metric--pink glass-p text-center glass-raised" style="transition:box-shadow 0.3s ease,transform 0.3s ease;">
         <h3 class="glass-metric__label">Negative Accounts</h3>
-        <p class="glass-metric__value">{{ negative_count }}</p>
+        <p class="glass-metric__value glass-text-emboss">{{ negative_count }}</p>
       </div>
-      <div class="glass-metric glass-metric--green glass-p text-center">
+      <div class="glass-metric glass-metric--green glass-p text-center glass-raised" style="transition:box-shadow 0.3s ease,transform 0.3s ease;">
         <h3 class="glass-metric__label">Avg. Credit Age</h3>
-        <p class="glass-metric__value text-2xl">
+        <p class="glass-metric__value text-2xl glass-text-emboss">
           {{ avg_credit_age }}
-          <span class="block text-xs text-gray-600">Oldest: {{ oldest_account_age }}</span>
+          <span class="block text-xs" style="color:var(--text-tertiary);">Oldest: {{ oldest_account_age }}</span>
         </p>
       </div>
     </div>
 
     <!-- Status Badge -->
     <div class="text-center">
-      <span class="glass-badge--danger">
+      <span class="glass-badge glass-badge--danger" style="padding:0.5rem 1.5rem;font-size:0.9rem;">
         Status: {{ status_text }}
       </span>
     </div>
 
     <!-- Summary -->
-    <div class="glass-card glass-card--heavy glass-p-lg">
-      <h2 class="text-xl font-bold text-gray-800 mb-4">📝 Summary</h2>
-      <p class="text-gray-700 leading-relaxed">{{ summary_text }}</p>
+    <div class="glass-card glass-card--heavy glass-p-lg glass-animate-in" style="animation-delay:.1s">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="glass-icon-well" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;">
+          {{ icons.icon_document(size=20, uid='ar2') }}
+        </div>
+        <h2 class="text-xl font-bold glass-text-3d" style="color:var(--text-primary);">Summary</h2>
+      </div>
+      <div class="glass-inset rounded-xl p-4">
+        <p class="leading-relaxed" style="color:var(--text-secondary);">{{ summary_text }}</p>
+      </div>
     </div>
 
     <!-- Recommendations -->
-    <div class="glass-card glass-card--heavy glass-p-lg">
-      <h2 class="text-xl font-bold text-gray-800 mb-4">✅ Recommendations</h2>
-      <ul class="list-disc list-inside space-y-2 text-gray-700">
-        {% for rec in recommendations %}
-          <li>{{ rec }}</li>
-        {% endfor %}
-      </ul>
+    <div class="glass-card glass-card--heavy glass-p-lg glass-animate-in" style="animation-delay:.15s">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="glass-icon-well" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;">
+          {{ icons.icon_check(size=20, uid='ar3') }}
+        </div>
+        <h2 class="text-xl font-bold glass-text-3d" style="color:var(--text-primary);">Recommendations</h2>
+      </div>
+      <div class="glass-inset rounded-xl p-4">
+        <ul class="list-disc list-inside space-y-2" style="color:var(--text-secondary);">
+          {% for rec in recommendations %}
+            <li>{{ rec }}</li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
 
 
     <!-- Inaccurate Reporting -->
     {% if inaccurate_accounts %}
-    <div class="mt-8 glass-card glass-card--heavy glass-p">
-      <h3 class="text-2xl font-bold text-blue-900 mb-4">⚠️ Inaccurate Reporting Detected</h3>
-      <ul class="list-inside space-y-3 text-gray-700">
+    <div class="mt-8 glass-card glass-card--heavy glass-p glass-animate-in" style="animation-delay:.2s">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="glass-icon-well" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;">
+          {{ icons.icon_search(size=20, uid='ar4') }}
+        </div>
+        <h3 class="text-xl font-bold glass-text-emboss" style="color:var(--text-primary);">Inaccurate Reporting Detected</h3>
+      </div>
+      <ul class="list-inside space-y-3" style="color:var(--text-secondary);">
         {% for acct in inaccurate_accounts %}
-        <li>
-          <strong>{{ acct.account_name }}</strong>
+        <li class="glass-list-item">
+          <strong style="color:var(--text-primary);">{{ acct.account_name }}</strong>
           ({{ acct.account_number }}):
           {{ acct.issue }}
         </li>
@@ -87,12 +110,17 @@
 
     <!-- Incomplete Information -->
     {% if incomplete_accounts %}
-    <div class="mt-8 glass-card glass-card--heavy glass-p">
-      <h3 class="text-2xl font-bold text-blue-900 mb-4">⚠️ Incomplete Account Data</h3>
-      <ul class="list-inside space-y-3 text-gray-700">
+    <div class="mt-8 glass-card glass-card--heavy glass-p glass-animate-in" style="animation-delay:.25s">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="glass-icon-well" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;">
+          {{ icons.icon_shield(size=20, uid='ar5') }}
+        </div>
+        <h3 class="text-xl font-bold glass-text-emboss" style="color:var(--text-primary);">Incomplete Account Data</h3>
+      </div>
+      <ul class="list-inside space-y-3" style="color:var(--text-secondary);">
         {% for acct in incomplete_accounts %}
-        <li>
-          <strong>{{ acct.account_name }}</strong>
+        <li class="glass-list-item">
+          <strong style="color:var(--text-primary);">{{ acct.account_name }}</strong>
           ({{ acct.account_number }}):
           Missing {{ acct.missing_fields | join(', ') }}
         </li>
@@ -104,12 +132,12 @@
     <div class="text-center mt-8">
       {% if status_text == 'Needs Repair' %}
         <a href="{{ url_for('select_account') }}"
-           class="glass-btn glass-btn--primary glass-btn--lg">
+           class="glass-btn glass-btn--primary glass-btn--lg glass-shimmer-edge" style="position:relative;overflow:hidden;">
           Start Dispute
         </a>
       {% elif status_text == 'Funding Ready' %}
         <a href="{{ url_for('funding_sequencer') }}"
-           class="glass-btn glass-btn--primary glass-btn--lg">
+           class="glass-btn glass-btn--primary glass-btn--lg glass-shimmer-edge" style="position:relative;overflow:hidden;">
           Start Funding Sequence
         </a>
       {% endif %}

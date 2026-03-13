@@ -1,25 +1,31 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 {% block title %}Upload Credit Report{% endblock %}
 {% block content %}
 <main class="flex justify-center items-center min-h-[75vh] px-4 py-10">
   <div class="glass-card glass-card--heavy glass-p text-center max-w-xl w-full relative glass-animate-in">
     <a href="{% if current_user.plan == 'business' %}{{ url_for('business.business_dashboard') }}{% else %}{{ url_for('disputes.index') }}{% endif %}"
        class="absolute top-6 left-6 glass-btn glass-btn--ghost p-3 rounded-full">
-      ←
+      &larr;
     </a>
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-blue-900 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M4 4v16h16V4H4zm4 4l4 4 4-4" />
-    </svg>
-    <h2 class="text-2xl font-bold text-[#2C3E50] mb-2">Upload Credit Report PDF</h2>
-    <p class="text-gray-600 mb-8">Please upload your credit report to begin parsing for negative accounts.</p>
+
+    <div class="glass-icon-well mx-auto mb-5" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
+      {{ icons.icon_file(size=28, uid='up1') }}
+    </div>
+
+    <h2 class="text-2xl font-bold mb-2 glass-text-3d" style="color:var(--text-primary);">Upload Credit Report PDF</h2>
+    <p class="mb-8" style="color:var(--text-secondary);">Please upload your credit report to begin parsing for negative accounts.</p>
+
     <form method="POST" action="{{ url_for('upload_pdf') }}" enctype="multipart/form-data">
-      <label class="inline-block glass-btn glass-btn--primary cursor-pointer">
-        <input type="file" name="pdfFile" accept=".pdf" class="hidden" onchange="this.form.submit()" />
-        Choose PDF
-      </label>
+      <div class="glass-inset rounded-2xl p-8 mb-6" style="border:2px dashed rgba(0,113,227,0.25);">
+        <div class="mb-3">{{ icons.icon_inbox(size=32, uid='up2') }}</div>
+        <p class="text-sm font-medium mb-4" style="color:var(--text-secondary);">Drop your PDF here or click below</p>
+        <label class="inline-block glass-btn glass-btn--primary glass-btn--pill cursor-pointer glass-shimmer-edge" style="position:relative;overflow:hidden;">
+          <input type="file" name="pdfFile" accept=".pdf" class="hidden" onchange="this.form.submit()" />
+          Choose PDF
+        </label>
+      </div>
     </form>
   </div>
 </main>
 {% endblock %}
-

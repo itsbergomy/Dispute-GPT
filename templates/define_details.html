@@ -1,5 +1,6 @@
 {# templates/define_details.html #}
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 
 {% block title %}Define Letter Details{% endblock %}
 
@@ -10,7 +11,8 @@
     <a href="{{ url_for('select_entity') }}"
        class="absolute top-4 left-4 glass-btn glass-btn--ghost p-3 rounded-full">
       <svg xmlns="http://www.w3.org/2000/svg"
-           class="w-5 h-5 text-gray-600"
+           class="w-5 h-5"
+           style="color:var(--text-secondary);"
            fill="none"
            viewBox="0 0 24 24"
            stroke="currentColor">
@@ -22,58 +24,62 @@
     </a>
 
     <!-- Icon -->
-    <div class="text-4xl mb-4 text-blue-900">💬</div>
+    <div class="glass-icon-well mx-auto mb-5" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
+      {{ icons.icon_document(size=28, uid='dd1') }}
+    </div>
 
-    <h2 class="text-2xl font-bold text-[#2C3E50] mb-6">
+    <h2 class="text-2xl font-bold mb-6 glass-text-3d" style="color:var(--text-primary);">
       Define Letter Details (Dispute Mode)
     </h2>
 
     <form method="POST" action="{{ url_for('define_details') }}" class="space-y-6 text-left">
-      {# CORE FIELDS #}
-      {% for name,label in core_fields %}
-      <div>
-        <label for="{{ name }}"
-               class="glass-label block">
-          {{ label }}:
-        </label>
-        <input type="text"
-               id="{{ name }}"
-               name="{{ name }}"
-               placeholder="{{ label }}"
-               required
-               class="glass-input w-full" />
+      <div class="glass-inset rounded-xl p-5 space-y-5">
+        {# CORE FIELDS #}
+        {% for name,label in core_fields %}
+        <div>
+          <label for="{{ name }}"
+                 class="glass-label block">
+            {{ label }}:
+          </label>
+          <input type="text"
+                 id="{{ name }}"
+                 name="{{ name }}"
+                 placeholder="{{ label }}"
+                 required
+                 class="glass-input w-full" />
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
 
-      {# ACDV‐ONLY FIELDS #}
+      {# ACDV-ONLY FIELDS #}
       {% if acdv_fields %}
-      <h3 class="mt-4 text-lg font-semibold text-gray-700">
+      <h3 class="mt-4 text-lg font-semibold glass-text-emboss" style="color:var(--text-primary);">
         ACDV Enforcement Details
       </h3>
-      {% for name,label in acdv_fields %}
-      <div>
-        <label for="{{ name }}"
-               class="glass-label block">
-          {{ label }}:
-        </label>
-        <input type="text"
-               id="{{ name }}"
-               name="{{ name }}"
-               placeholder="{{ label }}"
-               required
-               class="glass-input w-full" />
+      <div class="glass-inset rounded-xl p-5 space-y-5">
+        {% for name,label in acdv_fields %}
+        <div>
+          <label for="{{ name }}"
+                 class="glass-label block">
+            {{ label }}:
+          </label>
+          <input type="text"
+                 id="{{ name }}"
+                 name="{{ name }}"
+                 placeholder="{{ label }}"
+                 required
+                 class="glass-input w-full" />
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
       {% endif %}
 
       <button type="submit"
-              class="w-full glass-btn glass-btn--primary">
+              class="w-full glass-btn glass-btn--primary glass-shimmer-edge"
+              style="position:relative;overflow:hidden;">
         Next: Select Prompt Template
       </button>
     </form>
   </div>
 </main>
 {% endblock %}
-
-
-

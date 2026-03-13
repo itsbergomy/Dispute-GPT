@@ -1,0 +1,432 @@
+{# ═══════════════════════════════════════════════════════════
+   SVG Icon Macros — Gradient icons with depth & physicality
+   Usage: {% import '_icons.html' as icons %}
+          {{ icons.icon_clients(size=20, uid='metric1') }}
+   ═══════════════════════════════════════════════════════════ #}
+
+{# ── Clients (two people) ── #}
+{% macro icon_clients(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gc-{{ uid }}" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#5B9CF6"/><stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <filter id="gs-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#gs-{{ uid }})">
+    <circle cx="9" cy="7.5" r="3.2" fill="url(#gc-{{ uid }})"/>
+    <path d="M3 19.5c0-3 2.5-5.5 6-5.5s6 2.5 6 5.5" fill="url(#gc-{{ uid }})" opacity="0.85"/>
+    <circle cx="16.5" cy="8.5" r="2.5" fill="url(#gc-{{ uid }})" opacity="0.65"/>
+    <path d="M16 14c2.8 0 5 2 5 4.5" stroke="url(#gc-{{ uid }})" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.55"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Pipeline / Lightning ── #}
+{% macro icon_pipeline(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gp-{{ uid }}" x1="8" y1="2" x2="16" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#C084FC"/><stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <filter id="ps-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#ps-{{ uid }})">
+    <path d="M13 2L4.5 13H11L10 22L19.5 11H13L13 2Z" fill="url(#gp-{{ uid }})" stroke="url(#gp-{{ uid }})" stroke-width="0.5" stroke-linejoin="round"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Letter Sent (envelope with arrow) ── #}
+{% macro icon_letter_sent(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gls-{{ uid }}" x1="2" y1="4" x2="22" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#0071E3"/>
+    </linearGradient>
+    <filter id="lss-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#lss-{{ uid }})">
+    <rect x="2" y="5" width="16" height="13" rx="2.5" fill="url(#gls-{{ uid }})" opacity="0.85"/>
+    <path d="M2 7.5L10 13L18 7.5" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+    <path d="M18 11L22 8L18 5" stroke="url(#gls-{{ uid }})" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="14" y1="8" x2="22" y2="8" stroke="url(#gls-{{ uid }})" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Workflows (circular arrows) ── #}
+{% macro icon_workflows(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gw-{{ uid }}" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDE68A"/><stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <filter id="ws-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#ws-{{ uid }})">
+    <path d="M21 12A9 9 0 0 0 6.2 5.4" stroke="url(#gw-{{ uid }})" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M3 12A9 9 0 0 0 17.8 18.6" stroke="url(#gw-{{ uid }})" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M8 2L6 5.5L9.5 7" stroke="url(#gw-{{ uid }})" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M16 22L18 18.5L14.5 17" stroke="url(#gw-{{ uid }})" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── AI / Brain ── #}
+{% macro icon_ai(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="ga-{{ uid }}" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#C084FC"/><stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <filter id="as-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#as-{{ uid }})">
+    <path d="M12 2C8 2 5 5.5 5 9.5c0 2.5 1.2 4.6 3 6V19a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-3.5c1.8-1.4 3-3.5 3-6C19 5.5 16 2 12 2Z" fill="url(#ga-{{ uid }})" opacity="0.9"/>
+    <path d="M9 13h6M9 16h6" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.7"/>
+    <circle cx="9.5" cy="9" r="1.2" fill="#fff" opacity="0.8"/>
+    <circle cx="14.5" cy="9" r="1.2" fill="#fff" opacity="0.8"/>
+    <path d="M9.5 9L12 11L14.5 9" stroke="#fff" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.5"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Mailbox ── #}
+{% macro icon_mailbox(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gm-{{ uid }}" x1="2" y1="4" x2="22" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#93C5FD"/><stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <filter id="ms-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#ms-{{ uid }})">
+    <rect x="3" y="8" width="18" height="11" rx="3" fill="url(#gm-{{ uid }})"/>
+    <path d="M3 11C3 8 5.2 6 8 6h8c2.8 0 5 2 5 5" stroke="url(#gm-{{ uid }})" stroke-width="1.5" fill="none"/>
+    <path d="M3 11l9 5 9-5" stroke="#fff" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.8"/>
+    <rect x="18" y="3" width="3" height="8" rx="1" fill="url(#gm-{{ uid }})" opacity="0.7"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Chart (bar chart) ── #}
+{% macro icon_chart(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gch-{{ uid }}" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6EE7B7"/><stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+    <filter id="chs-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#chs-{{ uid }})">
+    <rect x="4" y="12" width="4" height="8" rx="1.5" fill="url(#gch-{{ uid }})" opacity="0.7"/>
+    <rect x="10" y="6" width="4" height="14" rx="1.5" fill="url(#gch-{{ uid }})" opacity="0.85"/>
+    <rect x="16" y="9" width="4" height="11" rx="1.5" fill="url(#gch-{{ uid }})"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Search (magnifying glass) ── #}
+{% macro icon_search(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gsr-{{ uid }}" x1="4" y1="4" x2="18" y2="18" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <filter id="srs-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#srs-{{ uid }})">
+    <circle cx="10.5" cy="10.5" r="6.5" stroke="url(#gsr-{{ uid }})" stroke-width="2.5" fill="none"/>
+    <circle cx="10.5" cy="10.5" r="6.5" fill="url(#gsr-{{ uid }})" opacity="0.12"/>
+    <line x1="15.5" y1="15.5" x2="21" y2="21" stroke="url(#gsr-{{ uid }})" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Legal (scales) ── #}
+{% macro icon_legal(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gl-{{ uid }}" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#818CF8"/><stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <filter id="ls-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#ls-{{ uid }})">
+    <line x1="12" y1="3" x2="12" y2="19" stroke="url(#gl-{{ uid }})" stroke-width="2" stroke-linecap="round"/>
+    <line x1="5" y1="7" x2="19" y2="7" stroke="url(#gl-{{ uid }})" stroke-width="2" stroke-linecap="round"/>
+    <path d="M5 7L3 13H9L7 7" fill="url(#gl-{{ uid }})" opacity="0.8"/>
+    <path d="M17 7L15 13H21L19 7" fill="url(#gl-{{ uid }})" opacity="0.8"/>
+    <line x1="7" y1="21" x2="17" y2="21" stroke="url(#gl-{{ uid }})" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Building (CFPB / government) ── #}
+{% macro icon_building(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gb-{{ uid }}" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#94A3B8"/><stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <filter id="bs-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#bs-{{ uid }})">
+    <path d="M12 2L3 7V9H21V7L12 2Z" fill="url(#gb-{{ uid }})"/>
+    <rect x="5" y="9" width="2.5" height="9" fill="url(#gb-{{ uid }})" opacity="0.85"/>
+    <rect x="10.75" y="9" width="2.5" height="9" fill="url(#gb-{{ uid }})" opacity="0.85"/>
+    <rect x="16.5" y="9" width="2.5" height="9" fill="url(#gb-{{ uid }})" opacity="0.85"/>
+    <rect x="3" y="18" width="18" height="2.5" rx="0.5" fill="url(#gb-{{ uid }})"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Document (doc with lines) ── #}
+{% macro icon_document(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gd-{{ uid }}" x1="5" y1="2" x2="19" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#93C5FD"/><stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <filter id="ds-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#ds-{{ uid }})">
+    <path d="M6 2h8.5L19 6.5V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" fill="url(#gd-{{ uid }})"/>
+    <path d="M14 2v5h5" fill="none" stroke="#fff" stroke-width="1" opacity="0.5"/>
+    <line x1="8" y1="11" x2="16" y2="11" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.7"/>
+    <line x1="8" y1="14" x2="16" y2="14" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.6"/>
+    <line x1="8" y1="17" x2="13" y2="17" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.5"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Shield (consumer law) ── #}
+{% macro icon_shield(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gsh-{{ uid }}" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6EE7B7"/><stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <filter id="shs-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#shs-{{ uid }})">
+    <path d="M12 2L4 6v5c0 5.5 3.4 10.3 8 12 4.6-1.7 8-6.5 8-12V6L12 2Z" fill="url(#gsh-{{ uid }})"/>
+    <path d="M9 12l2.5 2.5L15.5 10" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Money (dollar) ── #}
+{% macro icon_money(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gmo-{{ uid }}" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDE68A"/><stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+    <filter id="mos-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#mos-{{ uid }})">
+    <circle cx="12" cy="12" r="9.5" fill="url(#gmo-{{ uid }})"/>
+    <text x="12" y="16.5" text-anchor="middle" font-family="var(--font-display)" font-weight="800" font-size="13" fill="#fff" opacity="0.9">$</text>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Package (prompt packs) ── #}
+{% macro icon_package(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gpk-{{ uid }}" x1="2" y1="4" x2="22" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#C4B5FD"/><stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+    <filter id="pks-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#pks-{{ uid }})">
+    <path d="M12 2L2 7v10l10 5 10-5V7L12 2Z" fill="url(#gpk-{{ uid }})"/>
+    <path d="M2 7l10 5 10-5" stroke="#fff" stroke-width="1.2" fill="none" opacity="0.6"/>
+    <line x1="12" y1="12" x2="12" y2="22" stroke="#fff" stroke-width="1.2" opacity="0.5"/>
+    <path d="M7 4.5L17 9.5" stroke="#fff" stroke-width="1" opacity="0.35"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── File (single page / credit report) ── #}
+{% macro icon_file(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gf-{{ uid }}" x1="5" y1="2" x2="19" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D1D5DB"/><stop offset="100%" stop-color="#6B7280"/>
+    </linearGradient>
+    <filter id="fs-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#fs-{{ uid }})">
+    <path d="M6 2h8.5L19 6.5V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" fill="url(#gf-{{ uid }})"/>
+    <path d="M14 2v5h5" fill="none" stroke="#fff" stroke-width="1" opacity="0.4"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Briefcase (creditors / business) ── #}
+{% macro icon_briefcase(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gbr-{{ uid }}" x1="2" y1="6" x2="22" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#94A3B8"/><stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <filter id="brs-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#brs-{{ uid }})">
+    <rect x="2" y="8" width="20" height="12" rx="2.5" fill="url(#gbr-{{ uid }})"/>
+    <path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="url(#gbr-{{ uid }})" stroke-width="1.5" fill="none"/>
+    <line x1="2" y1="14" x2="22" y2="14" stroke="#fff" stroke-width="1" opacity="0.3"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Eye (supervised / view) ── #}
+{% macro icon_eye(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="ge-{{ uid }}" x1="2" y1="8" x2="22" y2="16" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#93C5FD"/><stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <filter id="es-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#es-{{ uid }})">
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" fill="url(#ge-{{ uid }})" opacity="0.2" stroke="url(#ge-{{ uid }})" stroke-width="1.8"/>
+    <circle cx="12" cy="12" r="3.5" fill="url(#ge-{{ uid }})"/>
+    <circle cx="12" cy="12" r="1.5" fill="#fff" opacity="0.8"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Inbox (messages) ── #}
+{% macro icon_inbox(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gi-{{ uid }}" x1="2" y1="4" x2="22" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <filter id="is-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#is-{{ uid }})">
+    <rect x="3" y="4" width="18" height="16" rx="2.5" fill="url(#gi-{{ uid }})"/>
+    <path d="M3 12l5.5 3.5a3 3 0 0 0 3 0L17 12" stroke="#fff" stroke-width="1.3" fill="none" opacity="0.7"/>
+    <path d="M3 8l9 5.5L21 8" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.85"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Check (pricing / success) ── #}
+{% macro icon_check(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gck-{{ uid }}" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6EE7B7"/><stop offset="100%" stop-color="#34C759"/>
+    </linearGradient>
+    <filter id="cks-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#cks-{{ uid }})">
+    <circle cx="12" cy="12" r="9" fill="url(#gck-{{ uid }})" opacity="0.2"/>
+    <path d="M7 12.5l3.5 3.5L17.5 9" stroke="url(#gck-{{ uid }})" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── ID Document ── #}
+{% macro icon_id(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gid-{{ uid }}" x1="2" y1="4" x2="22" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60A5FA"/><stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <filter id="ids-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#ids-{{ uid }})">
+    <rect x="2" y="5" width="20" height="14" rx="2.5" fill="url(#gid-{{ uid }})"/>
+    <circle cx="8" cy="11" r="2.5" fill="#fff" opacity="0.8"/>
+    <line x1="13" y1="9.5" x2="19" y2="9.5" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.7"/>
+    <line x1="13" y1="12.5" x2="17" y2="12.5" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.5"/>
+    <path d="M5 16c0-1.5 1.3-2.5 3-2.5s3 1 3 2.5" fill="#fff" opacity="0.5"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── SSN Card ── #}
+{% macro icon_ssn(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gsn-{{ uid }}" x1="2" y1="5" x2="22" y2="19" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A78BFA"/><stop offset="100%" stop-color="#6D28D9"/>
+    </linearGradient>
+    <filter id="sns-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#sns-{{ uid }})">
+    <rect x="2" y="5" width="20" height="14" rx="2.5" fill="url(#gsn-{{ uid }})"/>
+    <line x1="6" y1="10" x2="18" y2="10" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.6"/>
+    <line x1="6" y1="13" x2="14" y2="13" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.5"/>
+    <rect x="14" y="14.5" width="5" height="3" rx="1" fill="#fff" opacity="0.35"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Notes / Notepad ── #}
+{% macro icon_notes(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="gn-{{ uid }}" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDE68A"/><stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <filter id="ns-{{ uid }}"><feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.18)"/></filter>
+  </defs>
+  <g filter="url(#ns-{{ uid }})">
+    <path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" fill="url(#gn-{{ uid }})"/>
+    <line x1="8" y1="8" x2="16" y2="8" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.7"/>
+    <line x1="8" y1="12" x2="16" y2="12" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.6"/>
+    <line x1="8" y1="16" x2="12" y2="16" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.5"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{# ── Agent — bold brushed-metal robot icon ── #}
+{% macro icon_agent(size=24, uid='') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  <defs>
+    <linearGradient id="ga-{{ uid }}" x1="0" y1="4" x2="24" y2="4" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8090a8"/>
+      <stop offset="20%" stop-color="#c8d0dc"/>
+      <stop offset="40%" stop-color="#7888a0"/>
+      <stop offset="55%" stop-color="#b8c4d4"/>
+      <stop offset="75%" stop-color="#8898b0"/>
+      <stop offset="100%" stop-color="#c8d0dc"/>
+    </linearGradient>
+    <linearGradient id="ge-{{ uid }}" x1="8" y1="8" x2="16" y2="12" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0071e3"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <filter id="am-{{ uid }}">
+      <feDropShadow dx="0" dy="1" stdDeviation="0.8" flood-color="rgba(0,0,0,0.25)"/>
+    </filter>
+  </defs>
+  <g filter="url(#am-{{ uid }})">
+    <!-- Antenna -->
+    <line x1="12" y1="1" x2="12" y2="4.5" stroke="url(#ga-{{ uid }})" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="12" cy="1" r="1.6" fill="url(#ge-{{ uid }})"/>
+    <!-- Head -->
+    <rect x="4" y="4.5" width="16" height="11" rx="3.5" fill="url(#ga-{{ uid }})" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+    <!-- Eyes — glowing -->
+    <circle cx="8.5" cy="10" r="2.2" fill="url(#ge-{{ uid }})"/>
+    <circle cx="15.5" cy="10" r="2.2" fill="url(#ge-{{ uid }})"/>
+    <!-- Eye inner glow -->
+    <circle cx="8.5" cy="10" r="1" fill="#fff" opacity="0.6"/>
+    <circle cx="15.5" cy="10" r="1" fill="#fff" opacity="0.6"/>
+    <!-- Mouth -->
+    <rect x="9" y="13" width="6" height="1.2" rx="0.6" fill="rgba(0,113,227,0.35)"/>
+    <!-- Body -->
+    <rect x="6" y="16.5" width="12" height="5.5" rx="2.5" fill="url(#ga-{{ uid }})" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+    <!-- Body accent stripe -->
+    <rect x="9" y="18" width="6" height="1.2" rx="0.6" fill="url(#ge-{{ uid }})" opacity="0.45"/>
+  </g>
+</svg>
+{% endmacro %}

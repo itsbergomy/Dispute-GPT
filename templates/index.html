@@ -1,32 +1,31 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 {% block title %}Welcome to DisputeGPT{% endblock %}
 {% block content %}
 <main class="flex justify-center items-center min-h-[75vh] px-4">
   <div class="glass-card glass-card--heavy glass-p text-center max-w-xl w-full glass-animate-in">
-    <h2 class="text-4xl font-extrabold mb-4 text-[#2C3E50]">DisputeGPT</h2>
-    <p class="text-gray-600 mb-8 text-lg">Choose how you'd like to proceed crafting your dispute letter.</p>
+
+    <div class="glass-icon-well mx-auto mb-5" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
+      {{ icons.icon_ai(size=30, uid='idx1') }}
+    </div>
+
+    <h2 class="text-4xl font-extrabold mb-4 glass-text-3d" style="color:var(--text-primary);">DisputeGPT</h2>
+    <p class="mb-8 text-lg" style="color:var(--text-secondary);">Choose how you'd like to proceed crafting your dispute letter.</p>
+
     <div class="flex flex-col md:flex-row gap-4 justify-center">
       <a href="{{ url_for('upload_pdf') }}"
-         class="flex-1 glass-btn glass-btn--primary glass-btn--lg flex items-center justify-center text-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M4 4v16h16V4H4zm4 4l4 4 4-4" />
-        </svg>
+         class="flex-1 glass-btn glass-btn--primary glass-btn--lg flex items-center justify-center text-lg glass-shimmer-edge"
+         style="position:relative;overflow:hidden;">
+        <div class="mr-2">{{ icons.icon_file(size=20, uid='idx2') }}</div>
         Dispute Mode (Upload PDF)
       </a>
       <a href="{{ url_for('manual_mode') }}"
-         class="flex-1 glass-btn glass-btn--primary glass-btn--lg flex items-center justify-center text-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 20h9" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M16.5 3.5l4 4M4 13v6a2 2 0 002 2h6l8-8-6-6-8 8z" />
-        </svg>
+         class="flex-1 glass-btn glass-btn--primary glass-btn--lg flex items-center justify-center text-lg glass-shimmer-edge"
+         style="position:relative;overflow:hidden;">
+        <div class="mr-2">{{ icons.icon_document(size=20, uid='idx3') }}</div>
         Manual Mode (Enter Details)
       </a>
     </div>
   </div>
 </main>
 {% endblock %}
-
-

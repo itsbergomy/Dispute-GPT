@@ -5,7 +5,7 @@
   <a href="{% if current_user.is_authenticated and current_user.plan == 'business' %}{{ url_for('business_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}"
      class="glass-btn glass-btn--ghost mb-4 inline-flex items-center gap-1 text-sm">← Back</a>
   <div class="flex items-center justify-between mb-6">
-    <h1 class="text-3xl font-extrabold text-gray-900">Your Custom Letters</h1>
+    <h1 class="text-3xl font-extrabold glass-text-chrome" style="color:var(--text-primary);">Your Custom Letters</h1>
     <div class="flex items-center gap-3">
       <!-- Upload existing letter -->
       <form method="POST" action="{{ url_for('business.upload_custom_letter') }}" enctype="multipart/form-data" class="inline-flex">
@@ -36,8 +36,8 @@
       {% for L in letters %}
         <div class="glass-card glass-card--light glass-p flex items-center justify-between">
           <div>
-            <p class="text-lg font-semibold text-gray-800">{{ L.name }}</p>
-            <p class="text-sm text-gray-500">Created {{ L.created_at.strftime("%b %d, %Y") }}</p>
+            <p class="text-lg font-semibold " style="color:var(--text-primary);">{{ L.name }}</p>
+            <p class="text-sm " style="color:var(--text-tertiary);">Created {{ L.created_at.strftime("%b %d, %Y") }}</p>
           </div>
           <div class="flex space-x-4">
             <a href="{{ url_for('business.edit_custom_letter', letter_id=L.id) }}"
@@ -52,7 +52,7 @@
         </div>
       {% endfor %}
     {% else %}
-      <div class="glass-card glass-card--light glass-p text-center text-gray-600">
+      <div class="glass-card glass-card--light glass-p text-center " style="color:var(--text-secondary);">
         You have no custom letters yet.<br>
         <a href="{{ url_for('business.new_custom_letter') }}" class="glass-link">
           Create your first template

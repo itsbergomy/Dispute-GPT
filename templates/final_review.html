@@ -1,4 +1,5 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 
 {% block title %}Final Letter Review{% endblock %}
 
@@ -6,12 +7,18 @@
 <main class="flex justify-center items-center min-h-[80vh] px-4">
   <div class="glass-card glass-card--heavy glass-p w-full max-w-4xl glass-animate-in">
     <a href="{% if current_user.is_authenticated and current_user.plan == 'business' %}{{ url_for('business.business_dashboard') }}{% else %}{{ url_for('disputes.index') }}{% endif %}"
-       class="inline-block mb-4 glass-btn glass-btn--ghost p-3 rounded-full">← Back</a>
-    <h2 class="text-3xl font-bold text-center mb-8">Final Letter Review</h2>
-    
+       class="inline-block mb-4 glass-btn glass-btn--ghost p-3 rounded-full">&larr; Back</a>
+
+    <div class="text-center mb-8">
+      <div class="glass-icon-well mx-auto mb-4" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
+        {{ icons.icon_document(size=28, uid='fr1') }}
+      </div>
+      <h2 class="text-3xl font-bold glass-text-3d" style="color:var(--text-primary);">Final Letter Review</h2>
+    </div>
+
     <form action="/convert-pdf" method="POST" enctype="multipart/form-data" class="space-y-6">
-      <div>
-        <textarea name="letter" class="glass-input glass-textarea w-full h-52 font-mono text-base">{{ letter }}</textarea>
+      <div class="glass-inset rounded-xl p-4">
+        <textarea name="letter" class="glass-input glass-textarea w-full h-52 text-base" style="background:transparent;border:none;box-shadow:none;">{{ letter }}</textarea>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2">
@@ -34,11 +41,11 @@
       <div class="flex flex-wrap justify-between gap-4 pt-6">
         {% if session.get('manual_mode') %}
           <a href="/define-details-manual" class="glass-btn glass-btn--secondary">
-            ← Return to Define Details
+            &larr; Return to Define Details
           </a>
         {% else %}
           <a href="{{ url_for('select_account') }}" class="glass-btn glass-btn--secondary">
-            ← Return to Negative Accounts
+            &larr; Return to Negative Accounts
           </a>
         {% endif %}
 
@@ -46,7 +53,7 @@
           Return to Home
         </a>
 
-        <button type="submit" class="glass-btn glass-btn--primary">
+        <button type="submit" class="glass-btn glass-btn--primary glass-shimmer-edge" style="position:relative;overflow:hidden;">
           Convert to PDF
         </button>
 
@@ -58,4 +65,3 @@
   </div>
 </main>
 {% endblock %}
-

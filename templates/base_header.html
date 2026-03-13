@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}DisputeGPT{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/liquid-glass.css') }}">
 </head>
@@ -53,7 +56,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M3 10h4l3 10 4-18 3 10h4" />
         </svg>
-        DisputeGPT
+        <span class="glass-text-chrome" style="font-size:inherit;">DisputeGPT</span>
       </a>
 
       {# Nav links removed — all accessible from dashboard quick links #}
@@ -86,10 +89,10 @@
                class="hidden absolute right-0 top-full mt-1 w-64 rounded-2xl overflow-hidden z-50"
                style="background:rgba(30,30,40,0.85);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15);">
             {% for pack in [
-              {'key':'default','name':'📝 Default','desc':'Clean first-round dispute templates.'},
-              {'key':'arbitration','name':'⚖️ Arbitration','desc':'Heavy hitters — 15 U.S.C. §1681e(b).'},
-              {'key':'consumer_law','name':'🛡️ Consumer Law','desc':'FCBA, FDCPA statutory firepower.'},
-              {'key':'ACDV_response','name':'🔍 ACDV Enforcement','desc':'Demand full ACDV verification records.'}
+              {'key':'default','name':'Default','desc':'Clean first-round dispute templates.'},
+              {'key':'arbitration','name':'Arbitration','desc':'Heavy hitters — 15 U.S.C. §1681e(b).'},
+              {'key':'consumer_law','name':'Consumer Law','desc':'FCBA, FDCPA statutory firepower.'},
+              {'key':'ACDV_response','name':'ACDV Enforcement','desc':'Demand full ACDV verification records.'}
             ] %}
             <a href="{{ url_for('disputes.set_prompt_pack', pack=pack.key) }}"
                class="block px-4 py-2.5 text-sm transition hover:bg-white/10
@@ -162,7 +165,7 @@
     {% endif %}
   {% endwith %}
 
-  <main class="pt-16">
+  <main class="pt-20">
     {% block content %}{% endblock %}
   </main>
 
@@ -273,6 +276,27 @@
         setTimeout(() => el.remove(), 500);
       });
     }, 4000);
+
+    // ─── Intersection Observer — scroll-triggered animations ───
+    (function() {
+      const targets = document.querySelectorAll('.glass-animate-in');
+      if (!targets.length) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (!('IntersectionObserver' in window)) return; // fallback: CSS handles it
+
+      targets.forEach(el => el.classList.add('glass-animate-in--pending'));
+
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.remove('glass-animate-in--pending');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15 });
+
+      targets.forEach(el => io.observe(el));
+    })();
   </script>
   {% endblock %}
 

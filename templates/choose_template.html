@@ -1,4 +1,5 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 
 {% block title %}Choose Dispute Letter Template{% endblock %}
 
@@ -8,29 +9,31 @@
 
     <!-- Back Button -->
     <a href="/define-details" class="absolute top-4 left-4 glass-btn glass-btn--ghost p-3 rounded-full">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" style="color:var(--text-secondary);" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
       </svg>
     </a>
 
     <!-- Icon -->
-    <div class="text-4xl mb-4 text-blue-900">📄</div>
+    <div class="glass-icon-well mx-auto mb-4" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
+      {{ icons.icon_package(size=28, uid='ct1') }}
+    </div>
 
-    <h2 class="text-2xl font-bold text-[#2C3E50] mb-2">Choose Dispute Letter Template</h2>
-    <p class="text-gray-600 mb-8 text-base">Cycle through templates then select the one you prefer.</p>
+    <h2 class="text-2xl font-bold mb-2 glass-text-3d" style="color:var(--text-primary);">Choose Dispute Letter Template</h2>
+    <p class="mb-8 text-base" style="color:var(--text-secondary);">Cycle through templates then select the one you prefer.</p>
 
     <form method="POST" action="/generate-letter-screen">
-      <div class="relative glass-card glass-card--light glass-p-sm mb-6 min-h-[120px] font-medium italic">
+      <div class="relative glass-inset rounded-xl p-6 mb-6 min-h-[120px] font-medium italic">
         <div class="absolute left-4 top-1/2 transform -translate-y-1/2">
-          <button type="button" onclick="prevTemplate()" class="bg-white border border-gray-300 w-10 h-10 rounded-full text-lg hover:bg-gray-100">&#8249;</button>
+          <button type="button" onclick="prevTemplate()" class="glass-btn glass-btn--secondary w-10 h-10 rounded-full text-lg flex items-center justify-center">&#8249;</button>
         </div>
         <div class="absolute right-4 top-1/2 transform -translate-y-1/2">
-          <button type="button" onclick="nextTemplate()" class="bg-white border border-gray-300 w-10 h-10 rounded-full text-lg hover:bg-gray-100">&#8250;</button>
+          <button type="button" onclick="nextTemplate()" class="glass-btn glass-btn--secondary w-10 h-10 rounded-full text-lg flex items-center justify-center">&#8250;</button>
         </div>
-        <div id="templateDisplay" class="mx-12 text-left"></div>
+        <div id="templateDisplay" class="mx-12 text-left" style="color:var(--text-secondary);"></div>
       </div>
       <input type="hidden" name="template_text" id="templateInput" />
-      <button type="submit" class="w-full glass-btn glass-btn--primary">
+      <button type="submit" class="w-full glass-btn glass-btn--primary glass-shimmer-edge" style="position:relative;overflow:hidden;">
         Use This Template
       </button>
     </form>
@@ -61,5 +64,3 @@
   window.onload = updateTemplate;
 </script>
 {% endblock %}
-
-

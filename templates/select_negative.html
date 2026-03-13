@@ -1,31 +1,36 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 {% block title %}Select Negative Account{% endblock %}
 {% block content %}
 <main class="flex justify-center items-center min-h-[75vh] px-4 py-10">
   <div class="glass-card glass-card--heavy glass-p max-w-md w-full relative text-center glass-animate-in">
     <a href="{{ url_for('upload_pdf') }}"
        class="absolute top-4 left-4 glass-btn glass-btn--ghost p-3 rounded-full">
-      ←
+      &larr;
     </a>
-    <div class="w-12 h-12 mx-auto mb-4 glass-card glass-card--light rounded-full flex items-center justify-center">
-      ✓
+
+    <div class="glass-icon-well mx-auto mb-4" style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:14px;">
+      {{ icons.icon_check(size=24, uid='sn1') }}
     </div>
-    <h2 class="text-2xl font-bold text-[#2C3E50] mb-6">Select Negative Account</h2>
+    <h2 class="text-2xl font-bold mb-6 glass-text-3d" style="color:var(--text-primary);">Select Negative Account</h2>
 
     {% set disputed_accounts = session.get('disputed_accounts', []) %}
 
     {% for item in negative_items %}
     <form method="GET" action="{{ url_for('confirm_account') }}"
-          class="mb-4 rounded-xl border {% if item.account_number in disputed_accounts %}opacity-50 pointer-events-none{% else %}hover:shadow-md transition{% endif %}">
+          class="mb-3 glass-list-item text-left {% if item.account_number in disputed_accounts %}opacity-50 pointer-events-none{% endif %}"
+          style="transition:box-shadow 0.2s ease,transform 0.2s ease;"
+          onmouseenter="if(!this.classList.contains('pointer-events-none'))this.classList.add('glass-raised')"
+          onmouseleave="this.classList.remove('glass-raised')">
       <input type="hidden" name="account_name" value="{{ item.account_name }}">
       <input type="hidden" name="account_number" value="{{ item.account_number }}">
       <input type="hidden" name="status" value="{{ item.status }}">
       <button type="submit" class="w-full text-left p-4 flex justify-between items-center">
         <div>
-          <h4 class="text-lg font-semibold text-[#2C3E50]">{{ item.account_name }}</h4>
-          <p class="text-sm text-gray-600 mt-1">{{ item.account_number }} • {{ item.status }}</p>
+          <h4 class="text-lg font-semibold" style="color:var(--text-primary);">{{ item.account_name }}</h4>
+          <p class="text-sm mt-1" style="color:var(--text-tertiary);">{{ item.account_number }} &bull; {{ item.status }}</p>
         </div>
-        <div class="text-blue-900 text-xl font-bold">›</div>
+        <div class="text-xl font-bold" style="color:var(--accent);">&rsaquo;</div>
       </button>
     </form>
     {% endfor %}

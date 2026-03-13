@@ -1,4 +1,5 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
@@ -6,14 +7,16 @@
 
   <!-- ═══ Greeting ═══ -->
   <div class="glass-animate-in">
-    <h1 class="text-3xl font-bold tracking-tight">Welcome back, {{ current_user.first_name }}</h1>
+    <h1 class="text-3xl font-bold tracking-tight glass-text-chrome">Welcome back, {{ current_user.first_name }}</h1>
     <p class="text-[var(--text-secondary)] mt-1">Here's what's happening across your clients.</p>
   </div>
 
   <!-- ═══ AI Agent Widget ═══ -->
   <div class="flex justify-end glass-animate-in" style="animation-delay:.1s;margin-bottom:-1rem;">
-    <div class="glass-agent-bar flex items-center gap-2.5" style="padding:0.45rem 0.75rem 0.45rem 0.85rem;">
-      <span style="font-size:0.85rem;">&#x1F916;</span>
+    <div class="glass-agent-bar flex items-center gap-3" style="padding:0.5rem 0.9rem 0.5rem 0.65rem;">
+      <div class="glass-icon-well glass-breathe" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        {{ icons.icon_agent(24, 'ag1') }}
+      </div>
       <select id="agent-client-select" class="glass-input glass-select text-xs !py-1 !px-2 !pr-6 !rounded-lg !border-0" style="width:auto;min-width:120px;max-width:150px;background-color:rgba(255,255,255,0.06);font-size:0.7rem;">
         <option value="">Client</option>
         <option value="all">All Clients</option>
@@ -35,24 +38,44 @@
   <!-- ═══ 4 Metric Cards ═══ -->
   <div class="grid gap-5 grid-cols-2 lg:grid-cols-4 glass-stagger">
 
-    <div class="glass-metric glass-metric--blue">
-      <p class="glass-metric__label">Total Clients</p>
-      <p class="glass-metric__value">{{ stats.total_clients }}</p>
+    <div class="glass-metric glass-metric--blue glass-raised" style="transition:box-shadow 0.3s ease,transform 0.3s ease;">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="glass-icon-well" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;">
+          {{ icons.icon_clients(size=22, uid='m1') }}
+        </div>
+        <p class="glass-metric__label" style="margin:0;">Total Clients</p>
+      </div>
+      <p class="glass-metric__value glass-text-emboss" data-count-target="{{ stats.total_clients }}">0</p>
     </div>
 
-    <div class="glass-metric glass-metric--purple">
-      <p class="glass-metric__label">Active Pipelines</p>
-      <p class="glass-metric__value">{{ stats.active_pipelines }}</p>
+    <div class="glass-metric glass-metric--purple glass-raised" style="transition:box-shadow 0.3s ease,transform 0.3s ease;">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="glass-icon-well" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;">
+          {{ icons.icon_pipeline(size=22, uid='m2') }}
+        </div>
+        <p class="glass-metric__label" style="margin:0;">Active Pipelines</p>
+      </div>
+      <p class="glass-metric__value glass-text-emboss" data-count-target="{{ stats.active_pipelines }}">0</p>
     </div>
 
-    <div class="glass-metric glass-metric--green">
-      <p class="glass-metric__label">Letters Sent</p>
-      <p class="glass-metric__value">{{ stats.letters_sent }}</p>
+    <div class="glass-metric glass-metric--green glass-raised" style="transition:box-shadow 0.3s ease,transform 0.3s ease;">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="glass-icon-well" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;">
+          {{ icons.icon_letter_sent(size=22, uid='m3') }}
+        </div>
+        <p class="glass-metric__label" style="margin:0;">Letters Sent</p>
+      </div>
+      <p class="glass-metric__value glass-text-emboss" data-count-target="{{ stats.letters_sent }}">0</p>
     </div>
 
-    <div class="glass-metric glass-metric--yellow">
-      <p class="glass-metric__label">Workflows On</p>
-      <p class="glass-metric__value">{{ stats.workflows_enabled }}</p>
+    <div class="glass-metric glass-metric--yellow glass-raised" style="transition:box-shadow 0.3s ease,transform 0.3s ease;">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="glass-icon-well" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;">
+          {{ icons.icon_workflows(size=22, uid='m4') }}
+        </div>
+        <p class="glass-metric__label" style="margin:0;">Workflows On</p>
+      </div>
+      <p class="glass-metric__value glass-text-emboss" data-count-target="{{ stats.workflows_enabled }}">0</p>
     </div>
 
   </div>
@@ -63,7 +86,7 @@
     <!-- LEFT — Client List (3/5) -->
     <div class="lg:col-span-3 glass-metric-panel glass-p space-y-4 glass-animate-in">
       <div class="flex items-center justify-between">
-        <h2 class="text-xl font-bold">Clients</h2>
+        <h2 class="text-xl font-bold glass-text-3d">Clients</h2>
         <button id="addClientBtn"
                 class="glass-btn glass-btn--primary glass-btn--pill text-sm">
           + Add Client
@@ -89,8 +112,8 @@
                class="client-row glass-list-item flex justify-between items-center"
                data-name="{{ c.first_name }} {{ c.last_name }}">
               <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-                     style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.25);color:var(--text-primary);">
+                <div class="glass-icon-raised w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
+                     style="color:var(--text-primary);">
                   {{ c.first_name[0] }}{{ c.last_name[0] }}
                 </div>
                 <div>
@@ -111,20 +134,35 @@
 
     <!-- RIGHT — Pipeline Activity (2/5) -->
     <div class="lg:col-span-2 glass-metric-panel glass-p space-y-4 glass-animate-in" style="animation-delay:.15s">
-      <h2 class="text-xl font-bold">Pipeline Activity</h2>
+      <h2 class="text-xl font-bold glass-text-3d">Pipeline Activity</h2>
 
       <div class="space-y-3 max-h-[480px] overflow-y-auto pr-1">
         {% if pipelines %}
           {% for p in pipelines %}
-            <div class="glass-list-item space-y-1">
+            <div class="glass-list-item space-y-1{% if p.state in ['intake','strategy','generation','delivery'] %} glass-breathe{% endif %}">
               <div class="flex justify-between items-center">
-                <span class="font-semibold text-sm">
-                  {% if p.client %}
-                    {{ p.client.first_name }} {{ p.client.last_name }}
+                <div class="flex items-center gap-2">
+                  {% if p.state in ['intake','strategy','generation','delivery'] %}
+                    <span class="glass-dot glass-dot--active"></span>
+                  {% elif p.state == 'completed' %}
+                    <span class="glass-dot" style="background:#34c759;"></span>
+                  {% elif p.state == 'failed' %}
+                    <span class="glass-dot glass-dot--danger"></span>
+                  {% elif p.state == 'awaiting_response' %}
+                    <span class="glass-dot glass-dot--warning"></span>
+                  {% elif p.state == 'review' %}
+                    <span class="glass-dot glass-dot--blue"></span>
                   {% else %}
-                    Pipeline #{{ p.id }}
+                    <span class="glass-dot glass-dot--inactive"></span>
                   {% endif %}
-                </span>
+                  <span class="font-semibold text-sm">
+                    {% if p.client %}
+                      {{ p.client.first_name }} {{ p.client.last_name }}
+                    {% else %}
+                      Pipeline #{{ p.id }}
+                    {% endif %}
+                  </span>
+                </div>
                 <div class="flex items-center gap-2">
                   {% set state_colors = {
                     'completed': 'glass-badge--success',
@@ -132,7 +170,7 @@
                     'awaiting_response': 'glass-badge--warning',
                     'review': 'glass-badge--info'
                   } %}
-                  <span class="glass-badge {{ state_colors.get(p.state, 'glass-badge--neutral') }}">
+                  <span class="glass-badge glass-raised {{ state_colors.get(p.state, 'glass-badge--neutral') }}" style="box-shadow:0 2px 6px rgba(0,0,0,0.08),-1px -1px 4px rgba(255,255,255,0.3);">
                     {{ p.state.replace('_', ' ') }}
                   </span>
                   <button onclick="deletePipeline({{ p.id }}, this)" title="Delete"
@@ -176,38 +214,62 @@
 
         <div id="agentConfigForm">
           <!-- Mode Selection -->
-          <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Mode</p>
+          <p class="text-sm font-semibold mb-2 glass-text-emboss" style="color:var(--text-primary);">Mode</p>
           <div class="grid grid-cols-2 gap-3 mb-4">
-            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition hover:scale-[1.02]" id="mode-supervised-card">
+            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition-all duration-200 hover:scale-[1.02]" id="mode-supervised-card">
               <input type="radio" name="agent_mode" value="supervised" checked class="sr-only" onchange="updateModeUI()">
-              <div class="text-2xl mb-1">&#x1F441;</div>
+              <div class="glass-icon-well mx-auto mb-2" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;">
+                {{ icons.icon_eye(size=24, uid='cfg1') }}
+              </div>
               <div class="text-sm font-semibold">Supervised</div>
               <div class="text-xs" style="color:var(--text-tertiary);">Pauses for your review</div>
             </label>
-            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition hover:scale-[1.02]" id="mode-fullauto-card">
+            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition-all duration-200 hover:scale-[1.02]" id="mode-fullauto-card">
               <input type="radio" name="agent_mode" value="full_auto" class="sr-only" onchange="updateModeUI()">
-              <div class="text-2xl mb-1">&#x26A1;</div>
+              <div class="glass-icon-well mx-auto mb-2" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;">
+                {{ icons.icon_pipeline(size=24, uid='cfg2') }}
+              </div>
               <div class="text-sm font-semibold">Full Auto</div>
               <div class="text-xs" style="color:var(--text-tertiary);">Runs without stopping</div>
             </label>
           </div>
 
           <!-- Letter Source -->
-          <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Letter Source</p>
+          <p class="text-sm font-semibold mb-2 glass-text-emboss" style="color:var(--text-primary);">Letter Source</p>
           <div class="grid grid-cols-2 gap-3 mb-2">
-            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition hover:scale-[1.02]" id="source-packs-card">
+            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition-all duration-200 hover:scale-[1.02]" id="source-packs-card">
               <input type="radio" name="letter_source" value="packs" checked class="sr-only" onchange="updateLetterSourceUI()">
-              <div class="text-2xl mb-1">&#x1F4E6;</div>
+              <div class="glass-icon-well mx-auto mb-2" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;">
+                {{ icons.icon_package(size=24, uid='cfg3') }}
+              </div>
               <div class="text-sm font-semibold">Prompt Packs</div>
               <div class="text-xs" style="color:var(--text-tertiary);">Built-in templates</div>
             </label>
-            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition hover:scale-[1.02]" id="source-custom-card">
+            <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition-all duration-200 hover:scale-[1.02]" id="source-custom-card">
               <input type="radio" name="letter_source" value="custom" class="sr-only" onchange="updateLetterSourceUI()">
-              <div class="text-2xl mb-1">&#x1F4DD;</div>
+              <div class="glass-icon-well mx-auto mb-2" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;">
+                {{ icons.icon_document(size=24, uid='cfg4') }}
+              </div>
               <div class="text-sm font-semibold">Custom Letter</div>
               <div class="text-xs" style="color:var(--text-tertiary);">Your uploaded templates</div>
             </label>
           </div>
+          <!-- Pack selection per round (shown when Prompt Packs chosen) -->
+          <div id="packSelectSection" class="mb-4 space-y-2">
+            <p class="text-xs font-medium" style="color:var(--text-secondary);">Choose a pack for each round:</p>
+            {% for i in range(1, 4) %}
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold w-16" style="color:var(--text-tertiary);">Round {{ i }}</span>
+              <select name="round_pack_{{ i }}" class="round-pack-select glass-select glass-input text-sm flex-1 !py-1">
+                <option value="default" {% if i == 1 %}selected{% endif %}>Default</option>
+                <option value="consumer_law" {% if i == 2 %}selected{% endif %}>Consumer Law</option>
+                <option value="ACDV_response" {% if i == 3 %}selected{% endif %}>ACDV Enforcement</option>
+                <option value="arbitration">Arbitration</option>
+              </select>
+            </div>
+            {% endfor %}
+          </div>
+
           <div id="customLetterSelect" class="hidden mb-4">
             <select id="custom-letter-id" class="glass-select glass-input text-sm w-full !py-1.5">
               <option value="">Select a custom letter...</option>
@@ -224,16 +286,20 @@
 
           <!-- Send To (always visible — both modes need this) -->
           <div class="mb-4">
-            <p class="text-sm font-semibold mb-2" style="color:var(--text-primary);">Send Letters To</p>
+            <p class="text-sm font-semibold mb-2 glass-text-emboss" style="color:var(--text-primary);">Send Letters To</p>
             <div class="grid grid-cols-2 gap-3">
-              <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center" id="sendto-bureaus-card">
+              <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition-all duration-200 hover:scale-[1.02]" id="sendto-bureaus-card">
                 <input type="radio" name="send_to" value="bureaus" checked class="sr-only" onchange="updateSendToUI()">
-                <div class="text-lg">&#x1F3E2;</div>
+                <div class="glass-icon-well mx-auto mb-1.5" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;">
+                  {{ icons.icon_building(size=20, uid='cfg5') }}
+                </div>
                 <div class="text-xs font-semibold">Bureaus</div>
               </label>
-              <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center" id="sendto-creditors-card">
+              <label class="glass-card glass-card--light rounded-xl p-3 cursor-pointer text-center transition-all duration-200 hover:scale-[1.02]" id="sendto-creditors-card">
                 <input type="radio" name="send_to" value="creditors" class="sr-only" onchange="updateSendToUI()">
-                <div class="text-lg">&#x1F4BC;</div>
+                <div class="glass-icon-well mx-auto mb-1.5" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;">
+                  {{ icons.icon_briefcase(size=20, uid='cfg6') }}
+                </div>
                 <div class="text-xs font-semibold">Creditors</div>
               </label>
             </div>
@@ -255,7 +321,8 @@
 
           <!-- Submit -->
           <button type="button" id="agentSubmitBtn" onclick="submitAgentConfig()"
-                  class="glass-btn glass-btn--primary glass-btn--full rounded-2xl mt-5">
+                  class="glass-btn glass-btn--primary glass-btn--full rounded-2xl mt-5 glass-shimmer-edge"
+                  style="position:relative;overflow:hidden;">
             Start Pipeline
           </button>
           <div id="agentError" class="hidden mt-2 text-sm text-center" style="color:#ff3b30;"></div>
@@ -267,24 +334,36 @@
   <!-- ═══ Quick Links ═══ -->
   <div class="grid gap-4 grid-cols-1 sm:grid-cols-3 glass-stagger">
     <a href="{{ url_for('business.list_custom_letters') }}"
-       class="glass-card glass-card--light glass-p-sm flex items-center gap-3 hover:scale-[1.02] transition-transform">
-      <span class="text-2xl">📩</span>
+       class="glass-card glass-card--light glass-p-sm flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
+       style="transition:box-shadow 0.3s ease,transform 0.3s ease;"
+       onmouseenter="this.classList.add('glass-raised')" onmouseleave="this.classList.remove('glass-raised')">
+      <div class="glass-icon-well flex items-center justify-center" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;">
+        {{ icons.icon_inbox(size=24, uid='ql1') }}
+      </div>
       <div>
         <p class="font-semibold text-sm">Custom Letters</p>
         <p class="text-xs text-[var(--text-tertiary)]">Manage letter templates</p>
       </div>
     </a>
     <a href="{{ url_for('disputes.prompt_packs') }}"
-       class="glass-card glass-card--light glass-p-sm flex items-center gap-3 hover:scale-[1.02] transition-transform">
-      <span class="text-2xl">📝</span>
+       class="glass-card glass-card--light glass-p-sm flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
+       style="transition:box-shadow 0.3s ease,transform 0.3s ease;"
+       onmouseenter="this.classList.add('glass-raised')" onmouseleave="this.classList.remove('glass-raised')">
+      <div class="glass-icon-well flex items-center justify-center" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;">
+        {{ icons.icon_package(size=24, uid='ql2') }}
+      </div>
       <div>
         <p class="font-semibold text-sm">Prompt Packs</p>
         <p class="text-xs text-[var(--text-tertiary)]">Switch dispute templates</p>
       </div>
     </a>
     <a href="{{ url_for('disputes.funding_sequencer') }}"
-       class="glass-card glass-card--light glass-p-sm flex items-center gap-3 hover:scale-[1.02] transition-transform">
-      <span class="text-2xl">💰</span>
+       class="glass-card glass-card--light glass-p-sm flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
+       style="transition:box-shadow 0.3s ease,transform 0.3s ease;"
+       onmouseenter="this.classList.add('glass-raised')" onmouseleave="this.classList.remove('glass-raised')">
+      <div class="glass-icon-well flex items-center justify-center" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;">
+        {{ icons.icon_money(size=24, uid='ql3') }}
+      </div>
       <div>
         <p class="font-semibold text-sm">Funding Sequencer</p>
         <p class="text-xs text-[var(--text-tertiary)]">Credit-building tools</p>
@@ -480,6 +559,7 @@
   function updateLetterSourceUI() {
     const src = document.querySelector('input[name="letter_source"]:checked').value;
     document.getElementById('customLetterSelect').classList.toggle('hidden', src !== 'custom');
+    document.getElementById('packSelectSection').classList.toggle('hidden', src !== 'packs');
     document.getElementById('source-packs-card').style.borderColor = src === 'packs' ? 'var(--accent)' : '';
     document.getElementById('source-packs-card').style.borderWidth = src === 'packs' ? '2px' : '';
     document.getElementById('source-custom-card').style.borderColor = src === 'custom' ? 'var(--accent)' : '';
@@ -514,11 +594,14 @@
 
     const mode = document.querySelector('input[name="agent_mode"]:checked').value;
 
-    // Default packs — user picks actual pack at each round checkpoint in client view
+    // Read user-selected packs per round from dropdowns
+    const packSelects = document.querySelectorAll('.round-pack-select');
+    const round_packs = Array.from(packSelects).map(s => s.value);
+
     const config = {
       mode: mode,
       max_rounds: 3,
-      round_packs: ['default', 'consumer_law', 'ACDV_response'],
+      round_packs: round_packs,
       send_to: 'bureaus',
       creditor_addresses: [],
     };
@@ -635,5 +718,43 @@
       })
       .catch(err => alert('Error: ' + err.message));
   }
+
+  // ─── Metric count-up animation ───
+  (function() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.querySelectorAll('[data-count-target]').forEach(el => {
+        el.textContent = el.dataset.countTarget;
+      });
+      return;
+    }
+
+    const countUp = (el) => {
+      const target = parseInt(el.dataset.countTarget) || 0;
+      if (target === 0) { el.textContent = '0'; return; }
+      const duration = 1200;
+      const start = performance.now();
+
+      function tick(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease-out cubic
+        const ease = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(ease * target);
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    };
+
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) { countUp(e.target); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.3 });
+      document.querySelectorAll('[data-count-target]').forEach(el => io.observe(el));
+    } else {
+      document.querySelectorAll('[data-count-target]').forEach(countUp);
+    }
+  })();
 </script>
 {% endblock %}

@@ -3,16 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <title>Start Next Round?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/static/css/liquid-glass.css">
 </head>
-<body class="flex justify-center items-center h-screen">
-  <div class="glass-card glass-card--heavy glass-p-lg text-center max-w-[500px] w-full">
-    <h2 class="text-2xl font-bold mb-4">Round {{ current_round }} complete!</h2>
-    <p class="text-gray-600 mb-6">Do you want to start Round {{ current_round + 1 }}?</p>
+<body class="glass-body flex justify-center items-center h-screen">
+  <div class="glass-card glass-card--heavy glass-p-lg text-center max-w-[500px] w-full glass-animate-in">
+    <h2 class="text-2xl font-bold mb-4 glass-text-3d" style="color:var(--text-primary);">Round {{ current_round }} complete!</h2>
+    <p class="mb-6" style="color:var(--text-secondary);">Do you want to start Round {{ current_round + 1 }}?</p>
     <form method="POST" class="flex justify-center gap-4">
       <button type="submit" name="confirm_round" value="yes"
-              class="glass-btn glass-btn--primary glass-btn--lg">
+              class="glass-btn glass-btn--primary glass-btn--lg glass-shimmer-edge" style="position:relative;overflow:hidden;">
         Yes, Start Round {{ current_round + 1 }}
       </button>
       <button type="submit" name="confirm_round" value="no"
