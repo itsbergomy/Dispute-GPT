@@ -133,23 +133,152 @@
   </header>
 
   {% if current_user.is_authenticated and current_user.plan == 'pro' %}
-  <!-- Dispute Folder Toggle (Pro only — free users don't see this) -->
+  <!-- Dispute Folder Toggle (Pro only) -->
   <button id="openDisputeFolder"
-          class="fixed bottom-4 left-4 z-50 glass-btn glass-btn--primary glass-btn--pill shadow-lg">
-    Dispute Folder
+          class="fixed bottom-4 left-4 z-50 glass-btn glass-btn--primary glass-btn--pill shadow-lg glass-shimmer-edge"
+          style="position:fixed;overflow:hidden;">
+    📂 Dispute Folder
   </button>
 
-  <!-- Dispute Folder Drawer (content loaded via AJAX) -->
-  <aside id="disputeDrawer"
-         class="fixed top-16 right-0 h-[calc(100vh-4rem)] w-0 overflow-hidden glass-drawer rounded-l-3xl transition-[width] duration-300 z-50">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-white/20">
-      <h3 class="text-xl font-semibold">Your Dispute Folder</h3>
-      <button id="closeDisputeFolder" class="text-2xl hover:text-red-400 transition">&times;</button>
+  <!-- ═══ Dispute Folder — Free-floating Desktop Window ═══ -->
+  <div id="disputeWindow" style="
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    width: 560px;
+    max-width: 94vw;
+    max-height: 82vh;
+    flex-direction: column;
+    background: rgba(255,255,255,0.13);
+    backdrop-filter: blur(32px) saturate(190%) brightness(1.06);
+    -webkit-backdrop-filter: blur(32px) saturate(190%) brightness(1.06);
+    border: 1px solid rgba(255,255,255,0.30);
+    border-radius: 16px;
+    box-shadow:
+      0 24px 80px rgba(0,0,0,0.18),
+      0 8px 28px rgba(0,0,0,0.10),
+      0 2px 8px rgba(0,0,0,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.50),
+      inset 0 -1px 0 rgba(255,255,255,0.06);
+    opacity: 0;
+    z-index: 200;
+    overflow: hidden;
+  ">
+    <!-- ── Edge shimmer lights ── -->
+    <div class="folder-shimmer-top"></div>
+    <div class="folder-shimmer-bottom"></div>
+    <div class="folder-shimmer-left"></div>
+    <div class="folder-shimmer-right"></div>
+
+    <!-- ── Title Bar (drag handle) ── -->
+    <div id="folderTitlebar" style="
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0.6rem 1rem 0.55rem 0.85rem;
+      background: rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      flex-shrink: 0;
+    ">
+      <!-- Traffic-light close -->
+      <button id="closeFolderWindow" style="
+        width: 14px; height: 14px; border-radius: 50%;
+        background: linear-gradient(135deg, #ff6058, #e0443e);
+        border: 1px solid rgba(0,0,0,0.12);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; cursor: pointer;
+        transition: all 0.2s ease;
+      " title="Close"
+         onmouseenter="this.style.background='linear-gradient(135deg,#ff7b74,#ff6058)';this.style.boxShadow='0 0 6px rgba(255,96,88,0.4)';this.querySelector('svg').style.opacity='1'"
+         onmouseleave="this.style.background='linear-gradient(135deg,#ff6058,#e0443e)';this.style.boxShadow='none';this.querySelector('svg').style.opacity='0'"
+      >
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none" style="opacity:0;transition:opacity .15s;">
+          <path d="M1 1L7 7M7 1L1 7" stroke="rgba(80,0,0,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <!-- Centered title -->
+      <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:center;margin-right:14px;">
+        <span style="font-size:1rem;">📂</span>
+        <span class="glass-text-emboss" style="font-size:0.8rem;font-weight:600;color:var(--text-primary);letter-spacing:0.01em;">Dispute Folder</span>
+      </div>
     </div>
-    <div id="drawerContent" class="h-full">
+
+    <!-- ── Scrollable Content (AJAX loaded) ── -->
+    <div id="drawerContent" style="
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.15) transparent;
+    ">
       <p class="p-6 text-sm" style="color:var(--text-tertiary);">Loading...</p>
     </div>
-  </aside>
+  </div>
+
+  <style>
+    @keyframes folder-open {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+      60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+    #disputeWindow.is-open {
+      display: flex !important;
+      animation: folder-open 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    #disputeWindow.is-dragging {
+      box-shadow:
+        0 32px 100px rgba(0,0,0,0.22),
+        0 12px 36px rgba(0,0,0,0.14),
+        0 4px 12px rgba(0,0,0,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.50),
+        inset 0 -1px 0 rgba(255,255,255,0.06);
+    }
+    #folderTitlebar:active { cursor: grabbing; }
+    #drawerContent::-webkit-scrollbar { width: 6px; }
+    #drawerContent::-webkit-scrollbar-track { background: transparent; }
+    #drawerContent::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+    #drawerContent::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+    /* ── Shimmer on all 4 edges ── */
+    @keyframes folder-shimmer-top    { 0% { left: -60%; } 100% { left: 160%; } }
+    @keyframes folder-shimmer-bottom { 0% { right: -60%; } 100% { right: 160%; } }
+    @keyframes folder-shimmer-left   { 0% { bottom: -60%; } 100% { bottom: 160%; } }
+    @keyframes folder-shimmer-right  { 0% { top: -60%; } 100% { top: 160%; } }
+
+    #disputeWindow .folder-shimmer-top,
+    #disputeWindow .folder-shimmer-bottom,
+    #disputeWindow .folder-shimmer-left,
+    #disputeWindow .folder-shimmer-right {
+      position: absolute;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #disputeWindow .folder-shimmer-top {
+      top: 0; left: -60%; width: 40%; height: 1.5px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+      animation: folder-shimmer-top 6s ease-in-out infinite;
+    }
+    #disputeWindow .folder-shimmer-bottom {
+      bottom: 0; right: -60%; width: 40%; height: 1.5px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: folder-shimmer-bottom 6s ease-in-out 3s infinite;
+    }
+    #disputeWindow .folder-shimmer-left {
+      left: 0; bottom: -60%; width: 1.5px; height: 40%;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.35), transparent);
+      animation: folder-shimmer-left 7s ease-in-out 1.5s infinite;
+    }
+    #disputeWindow .folder-shimmer-right {
+      right: 0; top: -60%; width: 1.5px; height: 40%;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.35), transparent);
+      animation: folder-shimmer-right 7s ease-in-out 4.5s infinite;
+    }
+  </style>
   {% endif %}
 
   <!-- Flash messages -->
@@ -171,12 +300,13 @@
 
   {% block scripts %}
   <script>
-    const drawer = document.getElementById('disputeDrawer');
+    const folderWin = document.getElementById('disputeWindow');
     const drawerContent = document.getElementById('drawerContent');
     const openBtn = document.getElementById('openDisputeFolder');
-    const closeBtn = document.getElementById('closeDisputeFolder');
+    const closeBtn = document.getElementById('closeFolderWindow');
+    const titlebar = document.getElementById('folderTitlebar');
 
-    // ─── Load drawer content via AJAX ───
+    // ─── Load content via AJAX ───
     function loadDrawer() {
       if (!drawerContent) return;
       drawerContent.innerHTML = '<p class="p-6 text-sm" style="color:var(--text-tertiary);">Loading...</p>';
@@ -192,7 +322,7 @@
         });
     }
 
-    // ─── Tab switching inside the drawer ───
+    // ─── Tab switching ───
     function initDrawerTabs() {
       drawerContent.querySelectorAll('.glass-tab').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -208,9 +338,8 @@
       });
     }
 
-    // ─── AJAX form submission (stay in drawer) ───
+    // ─── AJAX form submission ───
     function initDrawerForms() {
-      // Regular forms (log, letter)
       drawerContent.querySelectorAll('.drawer-form').forEach(form => {
         form.addEventListener('submit', (e) => {
           e.preventDefault();
@@ -224,8 +353,6 @@
           }).then(() => loadDrawer());
         });
       });
-
-      // File upload form
       drawerContent.querySelectorAll('.drawer-upload-form').forEach(form => {
         form.addEventListener('submit', (e) => {
           e.preventDefault();
@@ -235,8 +362,6 @@
             .then(() => loadDrawer());
         });
       });
-
-      // Delete buttons
       drawerContent.querySelectorAll('.drawer-delete-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           if (!confirm('Delete this document?')) return;
@@ -246,16 +371,119 @@
       });
     }
 
-    // ─── Open / Close drawer ───
-    if (openBtn) {
+    // ─── Open window ───
+    if (openBtn && folderWin) {
       openBtn.addEventListener('click', () => {
-        drawer.style.width = '500px';
+        // Reset to center on each open
+        folderWin.style.top = '50%';
+        folderWin.style.left = '50%';
+        folderWin.style.transform = 'translate(-50%, -50%) scale(0.85)';
+        folderWin.classList.remove('is-closing');
+        folderWin.classList.add('is-open');
         loadDrawer();
+
+        // After open animation finishes, resolve to pixel coords
+        // so drag never causes a coordinate-system jump
+        folderWin.addEventListener('animationend', function resolveCoords() {
+          const rect = folderWin.getBoundingClientRect();
+          folderWin.style.animation = 'none';
+          folderWin.style.transform = 'none';
+          folderWin.style.left = rect.left + 'px';
+          folderWin.style.top = rect.top + 'px';
+          folderWin.style.opacity = '1';
+          folderWin.removeEventListener('animationend', resolveCoords);
+        });
       });
     }
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => { drawer.style.width = '0'; });
+
+    // ─── Close window — instant scale+fade from current position ───
+    function closeFolderWindow() {
+      if (!folderWin) return;
+      folderWin.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
+      folderWin.style.opacity = '0';
+      // Scale from current center, no positional shift
+      const rect = folderWin.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      folderWin.style.transformOrigin = 'center center';
+      folderWin.style.transform = (folderWin.style.transform || '').replace('scale(1)', '') || 'none';
+      // Force reflow then apply
+      void folderWin.offsetHeight;
+      folderWin.style.transform = 'scale(0.92)';
+      setTimeout(() => {
+        folderWin.classList.remove('is-open');
+        folderWin.style.display = 'none';
+        folderWin.style.transition = '';
+        folderWin.style.opacity = '';
+        folderWin.style.transform = '';
+      }, 200);
     }
+    if (closeBtn) closeBtn.addEventListener('click', closeFolderWindow);
+
+    // ─── Drag to move — lerp for loose, floaty feel ───
+    (function() {
+      if (!titlebar || !folderWin) return;
+      let isDragging = false, startX, startY, origX, origY;
+      let targetX, targetY, currentX, currentY, rafId;
+      const LERP = 0.18; // 0 = frozen, 1 = rigid. 0.18 = smooth trail
+
+      function lerpLoop() {
+        if (!isDragging && Math.abs(currentX - targetX) < 0.3 && Math.abs(currentY - targetY) < 0.3) {
+          folderWin.style.left = targetX + 'px';
+          folderWin.style.top = targetY + 'px';
+          rafId = null;
+          return;
+        }
+        currentX += (targetX - currentX) * LERP;
+        currentY += (targetY - currentY) * LERP;
+        folderWin.style.left = currentX + 'px';
+        folderWin.style.top = currentY + 'px';
+        rafId = requestAnimationFrame(lerpLoop);
+      }
+
+      function startDrag(clientX, clientY) {
+        isDragging = true;
+        folderWin.classList.add('is-dragging');
+        // Coords are already pixel-based (resolved on animationend)
+        origX = parseFloat(folderWin.style.left) || 0;
+        origY = parseFloat(folderWin.style.top) || 0;
+        startX = clientX; startY = clientY;
+        currentX = origX; currentY = origY;
+        targetX = origX; targetY = origY;
+        if (!rafId) rafId = requestAnimationFrame(lerpLoop);
+      }
+
+      function moveDrag(clientX, clientY) {
+        if (!isDragging) return;
+        targetX = origX + clientX - startX;
+        targetY = origY + clientY - startY;
+        if (!rafId) rafId = requestAnimationFrame(lerpLoop);
+      }
+
+      function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        folderWin.classList.remove('is-dragging');
+        // Let lerp coast to final position
+      }
+
+      titlebar.addEventListener('mousedown', e => {
+        if (e.target.closest('#closeFolderWindow')) return;
+        startDrag(e.clientX, e.clientY);
+        e.preventDefault();
+      });
+      document.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+      document.addEventListener('mouseup', endDrag);
+
+      titlebar.addEventListener('touchstart', e => {
+        if (e.target.closest('#closeFolderWindow')) return;
+        startDrag(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      titlebar.addEventListener('touchmove', e => {
+        moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      titlebar.addEventListener('touchend', endDrag);
+    })();
 
     // Pack dropdown toggle
     const packBtn = document.getElementById('packToggleBtn');

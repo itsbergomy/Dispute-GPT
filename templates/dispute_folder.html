@@ -3,88 +3,195 @@
 {% block title %}Dispute Folder{% endblock %}
 
 {% block content %}
-<main class="flex justify-center px-4 py-12 min-h-screen">
-  <div class="max-w-2xl w-full">
+<main class="min-h-screen" style="padding:0;">
 
-    <a href="{% if current_user.plan == 'business' %}{{ url_for('business.business_dashboard') }}{% else %}{{ url_for('disputes.index') }}{% endif %}"
-       class="inline-flex items-center gap-1 text-sm font-medium mb-4" style="color:var(--accent);">
-      &larr; Back
-    </a>
+  <!-- ═══ Free-floating Desktop Window ═══ -->
+  <div id="folder-window" style="
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    width: 680px;
+    max-width: 94vw;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255,255,255,0.13);
+    backdrop-filter: blur(32px) saturate(190%) brightness(1.06);
+    -webkit-backdrop-filter: blur(32px) saturate(190%) brightness(1.06);
+    border: 1px solid rgba(255,255,255,0.30);
+    border-radius: 16px;
+    box-shadow:
+      0 24px 80px rgba(0,0,0,0.18),
+      0 8px 28px rgba(0,0,0,0.10),
+      0 2px 8px rgba(0,0,0,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.50),
+      inset 0 -1px 0 rgba(255,255,255,0.06);
+    opacity: 0;
+    z-index: 100;
+    animation: folder-open 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards;
+    overflow: hidden;
+  ">
 
-    <div class="flex items-center gap-4 mb-6 glass-animate-in">
-      <div class="glass-icon-well" style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:14px;">
-        {{ icons.icon_briefcase(size=26, uid='df1') }}
+    <!-- ── Title Bar (drag handle) ── -->
+    <div id="folder-titlebar" style="
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0.6rem 1rem 0.55rem 0.85rem;
+      background: rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      flex-shrink: 0;
+    ">
+      <!-- Traffic-light close button -->
+      <a href="{% if current_user.plan == 'business' %}{{ url_for('business.business_dashboard') }}{% else %}{{ url_for('disputes.index') }}{% endif %}"
+         id="folder-close"
+         style="
+           width: 14px; height: 14px; border-radius: 50%;
+           background: linear-gradient(135deg, #ff6058, #e0443e);
+           border: 1px solid rgba(0,0,0,0.12);
+           display: flex; align-items: center; justify-content: center;
+           flex-shrink: 0;
+           transition: all 0.2s ease;
+         "
+         title="Close"
+         onmouseenter="this.style.background='linear-gradient(135deg,#ff7b74,#ff6058)';this.style.boxShadow='0 0 6px rgba(255,96,88,0.4)'"
+         onmouseleave="this.style.background='linear-gradient(135deg,#ff6058,#e0443e)';this.style.boxShadow='none'"
+      >
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none" style="opacity:0;transition:opacity .15s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0'">
+          <path d="M1 1L7 7M7 1L1 7" stroke="rgba(80,0,0,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </a>
+
+      <!-- Folder icon + title -->
+      <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:center;margin-right:14px;">
+        <div class="glass-icon-well" style="width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;">
+          {{ icons.icon_briefcase(size=16, uid='df1') }}
+        </div>
+        <span class="glass-text-emboss" style="font-size:0.8rem;font-weight:600;color:var(--text-primary);letter-spacing:0.01em;">Dispute Folder</span>
       </div>
-      <h1 class="text-3xl font-extrabold glass-text-chrome" style="color:var(--text-primary);">Your Dispute Folder</h1>
     </div>
 
-    <!-- Tabs -->
-    <div class="glass-tabs mb-6">
-      <button data-tab="logs" class="glass-tab glass-tab--active">Daily Log</button>
-      <button data-tab="letters" class="glass-tab">Mailed Letters</button>
-      <button data-tab="docs" class="glass-tab">Correspondence</button>
+    <!-- ── Tabs ── -->
+    <div style="padding:0.75rem 1.25rem 0;flex-shrink:0;">
+      <div class="glass-tabs">
+        <button data-tab="logs" class="glass-tab glass-tab--active">Daily Log</button>
+        <button data-tab="letters" class="glass-tab">Mailed Letters</button>
+        <button data-tab="docs" class="glass-tab">Correspondence</button>
+      </div>
     </div>
 
-    <!-- Daily Log -->
-    <div id="panel-logs" class="tab-panel glass-animate-in">
-      {% for entry in logs %}
-        <div class="mb-3 glass-card glass-card--light rounded-xl p-4">
-          <div class="text-xs" style="color:var(--text-tertiary);">{{ entry.timestamp }}</div>
-          <p class="mt-1 text-sm" style="color:var(--text-secondary);">{{ entry.description }}</p>
-        </div>
-      {% else %}
-        <p class="text-sm" style="color:var(--text-tertiary);">No log entries yet.</p>
-      {% endfor %}
-      <form action="{{ url_for('disputes.add_log') }}" method="POST" class="mt-4 glass-inset rounded-xl p-5">
-        <input name="title" required class="glass-input mb-2" placeholder="Title" />
-        <textarea name="content" required class="glass-input glass-textarea" placeholder="Describe your activity..."></textarea>
-        <button type="submit" class="mt-2 glass-btn glass-btn--primary glass-btn--pill">Add Log Entry</button>
-      </form>
-    </div>
+    <!-- ── Scrollable Content Area ── -->
+    <div id="folder-content" style="
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem 1.5rem 1.5rem;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.15) transparent;
+    ">
 
-    <!-- Mailed Letters -->
-    <div id="panel-letters" class="tab-panel hidden">
-      {% for L in letters %}
-        <div class="mb-3 glass-card glass-card--light rounded-xl p-4">
-          <div class="text-xs" style="color:var(--text-tertiary);">{{ L.created_at }}</div>
-          <p class="mt-1 text-sm" style="color:var(--text-secondary);">{{ L.letter_text[:120] }}...</p>
-        </div>
-      {% else %}
-        <p class="text-sm" style="color:var(--text-tertiary);">No mailed letters recorded.</p>
-      {% endfor %}
-      <form action="{{ url_for('disputes.add_letter') }}" method="POST" class="mt-4 glass-inset rounded-xl p-5">
-        <textarea name="letter_text" required class="glass-input glass-textarea" placeholder="Paste letter text..."></textarea>
-        <button type="submit" class="mt-2 glass-btn glass-btn--primary glass-btn--pill">Record Mailed Letter</button>
-      </form>
-    </div>
-
-    <!-- Correspondence / Uploads -->
-    <div id="panel-docs" class="tab-panel hidden">
-      {% for D in docs %}
-        <div class="mb-3 glass-card glass-card--light rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <div class="text-xs" style="color:var(--text-tertiary);">{{ D.uploaded_at }} &bull; {{ D.filename }}</div>
+      <!-- Daily Log -->
+      <div id="panel-logs" class="tab-panel">
+        {% for entry in logs %}
+          <div class="mb-3 glass-card glass-card--light rounded-xl p-4">
+            <div class="text-xs" style="color:var(--text-tertiary);">{{ entry.timestamp }}</div>
+            <p class="mt-1 text-sm" style="color:var(--text-secondary);">{{ entry.description }}</p>
           </div>
-          <a href="{{ D.file_url }}" class="glass-btn glass-btn--primary glass-btn--pill text-xs px-3 py-1">View</a>
-        </div>
-      {% else %}
-        <p class="text-sm" style="color:var(--text-tertiary);">No documents uploaded.</p>
-      {% endfor %}
-      <form action="{{ url_for('disputes.upload_doc') }}" method="POST" enctype="multipart/form-data"
-            class="mt-4 glass-inset rounded-xl p-5">
-        <label class="glass-label mb-2">Upload a document</label>
-        <input type="file" name="file" required class="glass-input mb-2" />
-        <button type="submit" class="glass-btn glass-btn--primary glass-btn--pill">Upload</button>
-      </form>
-    </div>
+        {% else %}
+          <p class="text-sm" style="color:var(--text-tertiary);">No log entries yet.</p>
+        {% endfor %}
+        <form action="{{ url_for('disputes.add_log') }}" method="POST" class="mt-4 glass-inset rounded-xl p-5">
+          <input name="title" required class="glass-input mb-2" placeholder="Title" />
+          <textarea name="content" required class="glass-input glass-textarea" placeholder="Describe your activity..."></textarea>
+          <button type="submit" class="mt-2 glass-btn glass-btn--primary glass-btn--pill glass-shimmer-edge">Add Log Entry</button>
+        </form>
+      </div>
 
-  </div>
+      <!-- Mailed Letters -->
+      <div id="panel-letters" class="tab-panel hidden">
+        {% for L in letters %}
+          <div class="mb-3 glass-card glass-card--light rounded-xl p-4">
+            <div class="text-xs" style="color:var(--text-tertiary);">{{ L.created_at }}</div>
+            <p class="mt-1 text-sm" style="color:var(--text-secondary);">{{ L.letter_text[:120] }}...</p>
+          </div>
+        {% else %}
+          <p class="text-sm" style="color:var(--text-tertiary);">No mailed letters recorded.</p>
+        {% endfor %}
+        <form action="{{ url_for('disputes.add_letter') }}" method="POST" class="mt-4 glass-inset rounded-xl p-5">
+          <textarea name="letter_text" required class="glass-input glass-textarea" placeholder="Paste letter text..."></textarea>
+          <button type="submit" class="mt-2 glass-btn glass-btn--primary glass-btn--pill glass-shimmer-edge">Record Mailed Letter</button>
+        </form>
+      </div>
+
+      <!-- Correspondence / Uploads -->
+      <div id="panel-docs" class="tab-panel hidden">
+        {% for D in docs %}
+          <div class="mb-3 glass-card glass-card--light rounded-xl p-4 flex items-center justify-between">
+            <div>
+              <div class="text-xs" style="color:var(--text-tertiary);">{{ D.uploaded_at }} &bull; {{ D.filename }}</div>
+            </div>
+            <a href="{{ D.file_url }}" class="glass-btn glass-btn--primary glass-btn--pill text-xs px-3 py-1">View</a>
+          </div>
+        {% else %}
+          <p class="text-sm" style="color:var(--text-tertiary);">No documents uploaded.</p>
+        {% endfor %}
+        <form action="{{ url_for('disputes.upload_doc') }}" method="POST" enctype="multipart/form-data"
+              class="mt-4 glass-inset rounded-xl p-5">
+          <label class="glass-label mb-2">Upload a document</label>
+          <input type="file" name="file" required class="glass-input mb-2" />
+          <button type="submit" class="glass-btn glass-btn--primary glass-btn--pill glass-shimmer-edge">Upload</button>
+        </form>
+      </div>
+
+    </div><!-- /Scrollable Content -->
+
+  </div><!-- /folder-window -->
+
 </main>
+
+<style>
+  @keyframes folder-open {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+    60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  /* Scrollbar styling for webkit */
+  #folder-content::-webkit-scrollbar { width: 6px; }
+  #folder-content::-webkit-scrollbar-track { background: transparent; }
+  #folder-content::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+  }
+  #folder-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.25);
+  }
+
+  /* Show X on close button hover */
+  #folder-close:hover svg { opacity: 1 !important; }
+
+  /* Titlebar active drag state */
+  #folder-titlebar:active { cursor: grabbing; }
+
+  /* Shadow intensifies while dragging */
+  #folder-window.is-dragging {
+    box-shadow:
+      0 32px 100px rgba(0,0,0,0.22),
+      0 12px 36px rgba(0,0,0,0.14),
+      0 4px 12px rgba(0,0,0,0.08),
+      inset 0 1px 0 rgba(255,255,255,0.50),
+      inset 0 -1px 0 rgba(255,255,255,0.06);
+    transition: box-shadow 0.2s ease;
+  }
+</style>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
+/* ── Tab switching ── */
 document.querySelectorAll('.glass-tab').forEach(btn => {
   btn.addEventListener('click', () => {
     btn.closest('.glass-tabs').querySelectorAll('.glass-tab').forEach(b => b.classList.remove('glass-tab--active'));
@@ -94,5 +201,80 @@ document.querySelectorAll('.glass-tab').forEach(btn => {
     if (name) document.getElementById('panel-' + name)?.classList.remove('hidden');
   });
 });
+
+/* ── Drag to move ── */
+(function() {
+  const win = document.getElementById('folder-window');
+  const bar = document.getElementById('folder-titlebar');
+  let isDragging = false;
+  let startX, startY, origX, origY, hasMoved = false;
+
+  bar.addEventListener('mousedown', e => {
+    if (e.target.closest('#folder-close')) return;          // don't drag on close btn
+    isDragging = true;
+    hasMoved = false;
+    win.classList.add('is-dragging');
+
+    const rect = win.getBoundingClientRect();
+    origX = rect.left;
+    origY = rect.top;
+    startX = e.clientX;
+    startY = e.clientY;
+
+    // Switch from centered transform to absolute positioning on first drag
+    if (!hasMoved) {
+      win.style.transform = 'none';
+      win.style.left = origX + 'px';
+      win.style.top  = origY + 'px';
+    }
+
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    hasMoved = true;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    win.style.left = (origX + dx) + 'px';
+    win.style.top  = (origY + dy) + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    win.classList.remove('is-dragging');
+  });
+
+  /* ── Touch support for mobile ── */
+  bar.addEventListener('touchstart', e => {
+    if (e.target.closest('#folder-close')) return;
+    isDragging = true;
+    win.classList.add('is-dragging');
+
+    const rect = win.getBoundingClientRect();
+    origX = rect.left;
+    origY = rect.top;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+
+    win.style.transform = 'none';
+    win.style.left = origX + 'px';
+    win.style.top  = origY + 'px';
+  }, { passive: true });
+
+  bar.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    win.style.left = (origX + dx) + 'px';
+    win.style.top  = (origY + dy) + 'px';
+  }, { passive: true });
+
+  bar.addEventListener('touchend', () => {
+    isDragging = false;
+    win.classList.remove('is-dragging');
+  });
+})();
 </script>
 {% endblock %}
