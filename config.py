@@ -65,6 +65,7 @@ def create_app():
         with db.engine.connect() as conn:
             from sqlalchemy import text, inspect
             inspector = inspect(db.engine)
+            # ── client_dispute_letters ──
             if 'client_dispute_letters' in inspector.get_table_names():
                 existing = [c['name'] for c in inspector.get_columns('client_dispute_letters')]
                 new_cols = {
@@ -73,11 +74,23 @@ def create_app():
                     'delivery_status': 'VARCHAR(50)',
                     'mailed_at': 'DATETIME',
                     'pdf_url': 'VARCHAR(500)',
+                    'round_number': 'INTEGER DEFAULT 1',
+                    'mail_class': "VARCHAR(50) DEFAULT 'usps_first_class'",
+                    'service_level': 'VARCHAR(50)',
+                    'delivery_status_updated_at': 'DATETIME',
+                    'tracking_number': 'VARCHAR(100)',
                 }
                 for col_name, col_type in new_cols.items():
                     if col_name not in existing:
                         conn.execute(text(f'ALTER TABLE client_dispute_letters ADD COLUMN {col_name} {col_type}'))
                 conn.commit()
+
+            # ── correspondence ──
+            if 'correspondence' in inspector.get_table_names():
+                existing = [c['name'] for c in inspector.get_columns('correspondence')]
+                if 'round_number' not in existing:
+                    conn.execute(text('ALTER TABLE correspondence ADD COLUMN round_number INTEGER DEFAULT 1'))
+                    conn.commit()
 
     mail.init_app(app)
     login_manager.init_app(app)
@@ -93,11 +106,13 @@ def create_app():
     from blueprints.disputes import disputes_bp
     from blueprints.business import business_bp
     from blueprints.pipeline_api import pipeline_bp
+    from blueprints.portal import portal_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(disputes_bp)
     app.register_blueprint(business_bp)
     app.register_blueprint(pipeline_bp, url_prefix='/api')
+    app.register_blueprint(portal_bp)
 
     # Template filter
     import json

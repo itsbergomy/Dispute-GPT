@@ -5,9 +5,10 @@ Extracted from dispute_ui.py.
 
 import os
 import json
+from datetime import datetime
 from flask import (
     Blueprint, request, render_template, flash, redirect,
-    url_for, session, send_from_directory, abort, current_app
+    url_for, session, send_from_directory, abort, current_app, jsonify
 )
 from flask_login import login_required, current_user
 from flask_mail import Message as MailMessage
@@ -16,7 +17,7 @@ from werkzeug.utils import secure_filename
 from models import (
     db, Client, ClientReportAnalysis, ClientDisputeLetter,
     WorkflowSetting, CustomLetter, MessageThread, Message,
-    Correspondence, DisputePipeline
+    Correspondence, DisputePipeline, ClientPortalToken
 )
 from services.pdf_parser import extract_negative_items_from_pdf
 from services.report_analyzer import run_report_analysis
@@ -168,12 +169,32 @@ def view_client(client_id):
         from services.pipeline_engine import get_pipeline_status
         pipeline_status = get_pipeline_status(active_pipeline.id)
 
+    # Client portal token
+    portal_token = ClientPortalToken.query.filter_by(
+        client_id=client.id, is_active=True
+    ).first()
+
     return render_template("view_client.html",
                            client=client,
                            client_parsed_accounts=client_parsed_accounts,
                            workflow_settings=workflow_settings,
                            active_pipeline=active_pipeline,
-                           pipeline_status=pipeline_status)
+                           pipeline_status=pipeline_status,
+                           portal_token=portal_token)
+
+
+@business_bp.route('/clients/<int:client_id>/notes', methods=['GET', 'POST'])
+@login_required
+def client_notes(client_id):
+    """AJAX endpoint — get or save client notes."""
+    client = Client.query.get_or_404(client_id)
+    if request.method == 'GET':
+        return jsonify({'notes': client.notes or ''})
+    # POST — save notes
+    data = request.get_json(silent=True) or {}
+    client.notes = data.get('notes', '').strip() or None
+    db.session.commit()
+    return jsonify({'ok': True, 'notes': client.notes or ''})
 
 
 @business_bp.route('/clients/<int:client_id>/upload-correspondence', methods=['POST'])
@@ -658,6 +679,109 @@ def upload_custom_letter():
     except Exception as e:
         flash(f"Error extracting text: {e}", "error")
         return redirect(url_for("business.list_custom_letters"))
+
+
+# ─── CFPB Search (Business Only) ───
+
+@business_bp.route('/cfpb-search')
+@login_required
+def cfpb_search_page():
+    """CFPB complaint search page."""
+    return render_template('cfpb_search.html')
+
+
+@business_bp.route('/cfpb-search', methods=['POST'])
+@login_required
+def cfpb_search_submit():
+    """Execute CFPB search and render results."""
+    company = request.form.get('company', '').strip()
+    narratives_only = request.form.get('narratives_only') == 'on'
+    if not company:
+        flash("Please enter a company name.", "error")
+        return render_template('cfpb_search.html')
+
+    from services.cfpb_search import search_complaints
+    results = search_complaints(company, limit=25, has_narrative=narratives_only or None)
+    return render_template('cfpb_search.html',
+                           company=company,
+                           results=results,
+                           narratives_only=narratives_only)
+
+
+@business_bp.route('/api/cfpb-search')
+@login_required
+def cfpb_search_api():
+    """AJAX CFPB search endpoint."""
+    company = request.args.get('company', '').strip()
+    if not company:
+        return jsonify({'error': 'company parameter required'}), 400
+
+    from services.cfpb_search import search_complaints
+    has_narrative = request.args.get('narratives_only', 'false').lower() == 'true'
+    results = search_complaints(company, limit=25, has_narrative=has_narrative or None)
+    return jsonify(results)
+
+
+# ─── Client Portal Management ───
+
+@business_bp.route('/clients/<int:client_id>/portal/generate', methods=['POST'])
+@login_required
+def generate_portal_link(client_id):
+    """Generate a unique portal link for a client."""
+    client = Client.query.get_or_404(client_id)
+    if client.business_user_id != current_user.id:
+        abort(403)
+
+    from models import ClientPortalToken
+    existing = ClientPortalToken.query.filter_by(client_id=client_id).first()
+    if existing:
+        existing.token = ClientPortalToken.generate_token()
+        existing.is_active = True
+        existing.created_at = datetime.utcnow()
+    else:
+        existing = ClientPortalToken(
+            client_id=client_id,
+            token=ClientPortalToken.generate_token(),
+        )
+        db.session.add(existing)
+    db.session.commit()
+
+    portal_url = f"{request.host_url.rstrip('/')}/portal/{existing.token}"
+    return jsonify({'ok': True, 'portal_url': portal_url, 'token': existing.token})
+
+
+@business_bp.route('/clients/<int:client_id>/portal/revoke', methods=['POST'])
+@login_required
+def revoke_portal_link(client_id):
+    """Deactivate a client's portal link."""
+    client = Client.query.get_or_404(client_id)
+    if client.business_user_id != current_user.id:
+        abort(403)
+
+    from models import ClientPortalToken
+    token = ClientPortalToken.query.filter_by(client_id=client_id).first()
+    if token:
+        token.is_active = False
+        db.session.commit()
+
+    return jsonify({'ok': True})
+
+
+@business_bp.route('/clients/<int:client_id>/portal/link')
+@login_required
+def get_portal_link(client_id):
+    """Return the portal URL for a client."""
+    client = Client.query.get_or_404(client_id)
+    if client.business_user_id != current_user.id:
+        abort(403)
+
+    from models import ClientPortalToken
+    token = ClientPortalToken.query.filter_by(client_id=client_id, is_active=True).first()
+    if not token:
+        return jsonify({'has_link': False})
+
+    portal_url = f"{request.host_url.rstrip('/')}/portal/{token.token}"
+    return jsonify({'has_link': True, 'portal_url': portal_url, 'token': token.token})
 
 
 # ─── Helper ───

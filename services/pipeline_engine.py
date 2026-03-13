@@ -335,6 +335,28 @@ def handle_intake(pipeline):
 
     # Compute and store PDF hash
     pipeline.pdf_hash = compute_pdf_hash(pdf_path)
+
+    # Extract negative items here since we skip the analysis step
+    # (user runs the full analyzer manually before starting the agent)
+    negative_items = extract_negative_items_from_pdf(pdf_path)
+
+    # Pull existing analysis from DB if available (user ran analyzer earlier)
+    analysis = {}
+    latest = ClientReportAnalysis.query.filter_by(client_id=client.id).order_by(
+        ClientReportAnalysis.id.desc()
+    ).first()
+    if latest:
+        try:
+            analysis = json.loads(latest.analysis_json)
+        except (ValueError, TypeError):
+            pass
+
+    # Merge into strategy_json (preserving agent_config)
+    strategy_data = json.loads(pipeline.strategy_json or '{}')
+    strategy_data['negative_items'] = negative_items
+    strategy_data['analysis'] = analysis
+    pipeline.strategy_json = json.dumps(strategy_data)
+
     db.session.commit()
 
     return 'strategy'  # Skip analysis — user runs analyzer manually before starting agent
@@ -512,12 +534,13 @@ def handle_generation(pipeline):
             prompt = build_prompt(account.template_pack, 0, context)
             letter_text = _sanitize_letter(generate_letter(prompt), context)
 
-        # Save to database
+        # Save to database (stamp round_number for round-scoped tracking)
         letter_record = ClientDisputeLetter(
             client_id=client.id,
             letter_text=letter_text,
             status='Draft',
             template_name=f"{account.template_pack} - {account.bureau}",
+            round_number=pipeline.round_number,
         )
         db.session.add(letter_record)
         db.session.flush()  # Get the ID
@@ -577,12 +600,13 @@ def approve_pipeline_letters(pipeline_id):
 
     _approve_all_drafts(pipeline)
 
-    # Advance to delivery
+    # Advance to delivery — the actual mailing happens in advance_pipeline
     pipeline.state = 'delivery'
     pipeline.updated_at = datetime.utcnow()
     db.session.commit()
 
-    advance_pipeline(pipeline_id)
+    # NOTE: advance_pipeline is called by the API endpoint in a background thread,
+    # not here, to avoid blocking the HTTP request during DocuPost mailing.
     return True
 
 
@@ -591,8 +615,9 @@ def handle_delivery(pipeline):
     import shutil
     import uuid as _uuid
 
-    # ── Early validation ──
-    docupost_token = os.environ.get('DOCUPOST_API_TOKEN')
+    # ── Early validation — resolve BYOK token first ──
+    from services.delivery import get_docupost_token
+    docupost_token = get_docupost_token(pipeline.user_id)
     dry_run = os.environ.get('DOCUPOST_DRY_RUN', 'false').lower() == 'true'
 
     if not docupost_token and not dry_run:
@@ -602,7 +627,7 @@ def handle_delivery(pipeline):
 
     client = Client.query.get(pipeline.client_id)
     upload_folder = os.environ.get('UPLOAD_FOLDER', 'static/uploads')
-    base_url = os.environ.get('APP_BASE_URL', 'http://localhost:5000')
+    base_url = os.environ.get('APP_BASE_URL', 'http://localhost:5001')
     agent_config = _get_agent_config(pipeline)
     send_to = agent_config.get('send_to', 'bureaus')
     creditor_addresses = agent_config.get('creditor_addresses', [])
@@ -647,7 +672,20 @@ def handle_delivery(pipeline):
             elif ext == 'pdf':
                 pdf_paths.append(doc_path)
 
-        # 3. Merge into temp file, then move to public uploads dir
+        # 3. Supporting docs attached to this account
+        from models import SupportingDoc
+        sup_docs = SupportingDoc.query.filter_by(
+            dispute_account_id=account.id, include_in_package=True
+        ).all()
+        for sd in sup_docs:
+            if sd.file_url and os.path.exists(sd.file_url):
+                ext = sd.filename.rsplit('.', 1)[-1].lower() if '.' in sd.filename else ''
+                if ext in ('png', 'jpg', 'jpeg'):
+                    pdf_paths.append(image_to_pdf(sd.file_url, field_type='supporting'))
+                elif ext == 'pdf':
+                    pdf_paths.append(sd.file_url)
+
+        # 4. Merge into temp file, then move to public uploads dir
         tmp_package = merge_dispute_package(pdf_paths)
 
         package_filename = f"package_{client.id}_{account.id}_{_uuid.uuid4().hex[:8]}.pdf"
@@ -696,17 +734,22 @@ def handle_delivery(pipeline):
         }
 
         # 6. Mail via DocuPost (or dry-run)
+        logger.info(f"Delivery: account={account.account_name} bureau={account.bureau} pdf_url={pdf_url}")
+
         if dry_run:
             logger.info(f"DRY RUN: Would mail to {recipient.get('name')} "
                         f"for account {account.account_name} ({account.account_number})")
-            logger.info(f"DRY RUN: PDF URL = {pdf_url}")
             result = {'success': True, 'response': 'dry-run'}
         else:
+            mail_opts = agent_config.get('mail_options', {})
             result = mail_letter_via_docupost(
                 pdf_url=pdf_url,
                 recipient=recipient,
                 sender=sender,
+                mail_options=mail_opts,
+                api_token=docupost_token,
             )
+            logger.info(f"DocuPost response: {result}")
 
         if result.get('success'):
             account.mailed_at = datetime.utcnow()
@@ -714,6 +757,8 @@ def handle_delivery(pipeline):
             account.letter.pdf_url = f"/static/uploads/{client.id}/packages/{package_filename}"
             account.letter.mailed_at = datetime.utcnow()
             account.letter.delivery_status = 'queued'
+            account.letter.mail_class = mail_opts.get('mail_class', 'usps_first_class')
+            account.letter.service_level = mail_opts.get('servicelevel') or None
             # Store DocuPost tracking info
             if result.get('letter_id'):
                 account.letter.docupost_letter_id = result['letter_id']

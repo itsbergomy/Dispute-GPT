@@ -315,6 +315,30 @@
             </button>
           </div>
 
+          <!-- Mail Options -->
+          <div class="mb-4">
+            <p class="text-sm font-semibold mb-2 glass-text-emboss" style="color:var(--text-primary);">Mail Options</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="glass-label text-xs mb-1">Mail Class</label>
+                <select id="mailClass" class="glass-select w-full text-sm">
+                  <option value="usps_first_class">USPS First Class</option>
+                  <option value="usps_standard">USPS Standard</option>
+                  <option value="usps_priority_mail">USPS Priority Mail</option>
+                  <option value="usps_priority_mail_express">Priority Mail Express</option>
+                </select>
+              </div>
+              <div>
+                <label class="glass-label text-xs mb-1">Service Level</label>
+                <select id="mailServiceLevel" class="glass-select w-full text-sm">
+                  <option value="">Standard</option>
+                  <option value="certified">Certified Mail</option>
+                  <option value="certified_return_receipt">Certified + Return Receipt</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <!-- Full Auto Config (hidden by default) -->
           <div id="fullAutoConfig" class="hidden space-y-4">
           </div>
@@ -332,7 +356,7 @@
   </div>
 
   <!-- ═══ Quick Links ═══ -->
-  <div class="grid gap-4 grid-cols-1 sm:grid-cols-3 glass-stagger">
+  <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 glass-stagger">
     <a href="{{ url_for('business.list_custom_letters') }}"
        class="glass-card glass-card--light glass-p-sm flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
        style="transition:box-shadow 0.3s ease,transform 0.3s ease;"
@@ -367,6 +391,18 @@
       <div>
         <p class="font-semibold text-sm">Funding Sequencer</p>
         <p class="text-xs text-[var(--text-tertiary)]">Credit-building tools</p>
+      </div>
+    </a>
+    <a href="{{ url_for('business.cfpb_search_page') }}"
+       class="glass-card glass-card--light glass-p-sm flex items-center gap-4 transition-all duration-300 hover:scale-[1.02]"
+       style="transition:box-shadow 0.3s ease,transform 0.3s ease;"
+       onmouseenter="this.classList.add('glass-raised')" onmouseleave="this.classList.remove('glass-raised')">
+      <div class="glass-icon-well flex items-center justify-center" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;">
+        {{ icons.icon_search(size=24, uid='ql4') }}
+      </div>
+      <div>
+        <p class="font-semibold text-sm">CFPB Search</p>
+        <p class="text-xs text-[var(--text-tertiary)]">Search complaint database</p>
       </div>
     </a>
   </div>
@@ -604,6 +640,10 @@
       round_packs: round_packs,
       send_to: 'bureaus',
       creditor_addresses: [],
+      mail_options: {
+        mail_class: document.getElementById('mailClass').value,
+        servicelevel: document.getElementById('mailServiceLevel').value,
+      },
     };
 
     // Check letter source — custom letter overrides prompt packs

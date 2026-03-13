@@ -211,8 +211,8 @@
       <!-- Preview & Submit -->
       <div class="space-y-4">
         <h3 class="text-xl font-semibold glass-text-emboss" style="color:var(--text-primary);">Letter Preview</h3>
-        <div class="glass-inset rounded-xl p-6 text-center" style="color:var(--text-tertiary);font-style:italic;">
-          Add your merged PDF above to preview here
+        <div id="pdfPreviewArea" class="glass-inset rounded-xl p-6 text-center" style="color:var(--text-tertiary);font-style:italic;min-height:200px;">
+          Upload a PDF above to preview here
         </div>
         <div class="flex justify-end pt-4">
           <button type="submit" class="glass-btn glass-btn--primary glass-shimmer-edge" style="position:relative;overflow:hidden;">
@@ -223,4 +223,60 @@
     </form>
   </div>
 </main>
+
+<script>
+// ─── Populate state dropdowns ───
+(function(){
+  const states = [
+    ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],
+    ['CA','California'],['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],
+    ['FL','Florida'],['GA','Georgia'],['HI','Hawaii'],['ID','Idaho'],
+    ['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],
+    ['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],
+    ['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],
+    ['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],
+    ['NH','New Hampshire'],['NJ','New Jersey'],['NM','New Mexico'],['NY','New York'],
+    ['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],
+    ['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],
+    ['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],
+    ['VT','Vermont'],['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],
+    ['WI','Wisconsin'],['WY','Wyoming'],['DC','District of Columbia']
+  ];
+  document.querySelectorAll('select[name="to_state"], select[name="from_state"]').forEach(sel => {
+    states.forEach(([abbr, name]) => {
+      const opt = document.createElement('option');
+      opt.value = abbr; opt.textContent = name;
+      sel.appendChild(opt);
+    });
+  });
+})();
+
+// ─── PDF preview on file select ───
+(function(){
+  const fileInput = document.querySelector('input[name="pdf_file"]');
+  const preview = document.getElementById('pdfPreviewArea');
+  if (!fileInput || !preview) return;
+
+  fileInput.addEventListener('change', function(){
+    const file = this.files[0];
+    if (!file || file.type !== 'application/pdf') {
+      preview.innerHTML = '<span style="color:var(--text-tertiary);font-style:italic;">Upload a PDF above to preview here</span>';
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    preview.innerHTML = '';
+    preview.style.fontStyle = 'normal';
+    preview.style.textAlign = 'left';
+    preview.style.padding = '0';
+    const obj = document.createElement('object');
+    obj.data = url;
+    obj.type = 'application/pdf';
+    obj.style.width = '100%';
+    obj.style.height = '60vh';
+    obj.style.borderRadius = '12px';
+    obj.innerHTML = '<p style="padding:1.5rem;color:var(--text-tertiary);">PDF preview not supported in this browser. <a href="' + url + '" target="_blank" style="color:var(--accent);">Open in new tab</a></p>';
+    preview.appendChild(obj);
+  });
+})();
+</script>
 {% endblock %}

@@ -13,7 +13,21 @@ DOCUPOST_API_TOKEN = os.getenv("DOCUPOST_API_TOKEN")
 DOCUPOST_SENDLETTER_URL = "https://app.docupost.com/api/1.1/wf/sendletter"
 
 
-def mail_letter_via_docupost(pdf_url, recipient, sender, mail_options=None):
+def get_docupost_token(user_id=None):
+    """Resolve DocuPost API token — check user's BYOK key first, fall back to env var."""
+    if user_id:
+        try:
+            from models import UserSetting
+            from services.encryption import decrypt_value
+            setting = UserSetting.query.filter_by(user_id=user_id, key='docupost_api_token').first()
+            if setting and setting.value:
+                return decrypt_value(setting.value)
+        except Exception:
+            pass  # Fall back to platform key
+    return DOCUPOST_API_TOKEN
+
+
+def mail_letter_via_docupost(pdf_url, recipient, sender, mail_options=None, api_token=None):
     """
     Send a letter via DocuPost USPS mailing service.
 
@@ -23,17 +37,19 @@ def mail_letter_via_docupost(pdf_url, recipient, sender, mail_options=None):
         sender: Dict with keys: name, company, address1, address2, city, state, zip.
         mail_options: Optional dict with keys: mail_class, servicelevel, color,
                       doublesided, return_envelope, description.
+        api_token: Optional BYOK token. Falls back to DOCUPOST_API_TOKEN env var.
 
     Returns:
         Dict with 'success' bool and 'response' or 'error'.
     """
-    if not DOCUPOST_API_TOKEN:
+    token = api_token or DOCUPOST_API_TOKEN
+    if not token:
         return {'success': False, 'error': 'DocuPost API token not configured'}
 
     options = mail_options or {}
 
     params = {
-        'api_token': DOCUPOST_API_TOKEN,
+        'api_token': token,
         'pdf': pdf_url,
         # Recipient
         'to_name': recipient.get('name', ''),
@@ -62,17 +78,37 @@ def mail_letter_via_docupost(pdf_url, recipient, sender, mail_options=None):
 
     try:
         resp = requests.post(DOCUPOST_SENDLETTER_URL, params=params)
-        if resp.status_code == 200 and b"<Error>" not in resp.content:
-            # Parse the JSON response for tracking info
-            result = {'success': True, 'response': resp.text}
-            try:
-                data = resp.json()
-                result['letter_id'] = data.get('letter_id')
-                result['cost'] = data.get('cost')
-            except (ValueError, KeyError):
-                pass  # Response wasn't JSON — still treat as success
-            return result
-        else:
+        print(f"[DocuPost] status={resp.status_code} body={resp.text[:500]}")
+
+        # Try to parse JSON first — DocuPost returns 200 even on errors
+        try:
+            data = resp.json()
+            print(f"[DocuPost] parsed JSON keys: {list(data.keys())}")
+        except (ValueError, KeyError):
+            data = {}
+
+        # Check for error in JSON body (DocuPost returns 200 + {"error": "..."})
+        if data.get('error'):
+            print(f"[DocuPost] API ERROR: {data['error']}")
+            return {'success': False, 'error': data['error']}
+
+        if resp.status_code != 200 or b"<Error>" in resp.content:
+            print(f"[DocuPost] HTTP ERROR: {resp.text[:500]}")
             return {'success': False, 'error': resp.text}
+
+        # Success — extract tracking info
+        result = {'success': True, 'response': resp.text}
+        result['letter_id'] = (
+            data.get('letter_id') or
+            data.get('letterId') or
+            data.get('id')
+        )
+        result['cost'] = (
+            data.get('cost') or
+            data.get('total_cost') or
+            data.get('price')
+        )
+        return result
     except Exception as e:
+        print(f"[DocuPost] EXCEPTION: {e}")
         return {'success': False, 'error': str(e)}

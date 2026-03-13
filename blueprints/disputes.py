@@ -13,7 +13,7 @@ from flask import (
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
-from models import db, User, DisputeRound, DailyLogEntry, MailedLetter, Correspondence
+from models import db, User, UserSetting, DisputeRound, DailyLogEntry, MailedLetter, Correspondence
 from services.pdf_parser import (
     extract_negative_items_from_pdf, compute_pdf_hash,
     extract_pdf_metrics, pdf_to_base64_images
@@ -22,7 +22,7 @@ from services.letter_generator import (
     PACKS, PACK_INFO, generate_letter, letter_to_pdf,
     image_to_pdf, merge_dispute_package
 )
-from services.delivery import mail_letter_via_docupost
+from services.delivery import mail_letter_via_docupost, get_docupost_token
 from services.report_analyzer import run_report_analysis
 
 disputes_bp = Blueprint('disputes', __name__)
@@ -60,6 +60,12 @@ def index():
     if current_user.is_authenticated and current_user.plan == 'business':
         return redirect(url_for('business.business_dashboard'))
     return render_template('index.html')
+
+
+@disputes_bp.route('/landing')
+def landing_preview():
+    """Temp preview route for the landing page — remove before production."""
+    return render_template('landing.html')
 
 
 @disputes_bp.route('/upload-pdf', methods=['GET', 'POST'])
@@ -391,10 +397,12 @@ def mail_letter():
         'zip': request.form.get('from_zip', session.get('user_zip', '')),
     }
 
+    byok_token = get_docupost_token(current_user.id)
     result = mail_letter_via_docupost(
         pdf_url=session.get('final_pdf_url'),
         recipient=recipient,
         sender=sender,
+        api_token=byok_token,
     )
 
     if result.get('success'):
@@ -658,3 +666,76 @@ def report_analyzer():
 @login_required
 def funding_sequencer():
     return render_template('funding_sequencer.html')
+
+
+# ─── Settings (BYOK) ───
+
+@disputes_bp.route('/settings')
+@login_required
+def settings_page():
+    """Settings page — BYOK API keys."""
+    setting = UserSetting.query.filter_by(user_id=current_user.id, key='docupost_api_token').first()
+    has_key = bool(setting and setting.value)
+    masked = ''
+    if has_key:
+        try:
+            from services.encryption import decrypt_value
+            raw = decrypt_value(setting.value)
+            masked = '•' * (len(raw) - 4) + raw[-4:] if len(raw) > 4 else '•' * len(raw)
+        except Exception:
+            masked = '••••••••'
+    return render_template('settings.html', has_docupost_key=has_key, masked_key=masked)
+
+
+@disputes_bp.route('/settings/docupost-key', methods=['POST'])
+@login_required
+def save_docupost_key():
+    """Save or update the user's DocuPost API key (encrypted)."""
+    data = request.get_json(silent=True) or {}
+    key_value = data.get('api_key', '').strip()
+    if not key_value:
+        return jsonify({'error': 'API key is required'}), 400
+
+    from services.encryption import encrypt_value
+    encrypted = encrypt_value(key_value)
+
+    setting = UserSetting.query.filter_by(user_id=current_user.id, key='docupost_api_token').first()
+    if setting:
+        setting.value = encrypted
+        setting.updated_at = datetime.utcnow()
+    else:
+        setting = UserSetting(user_id=current_user.id, key='docupost_api_token', value=encrypted)
+        db.session.add(setting)
+    db.session.commit()
+
+    masked = '•' * (len(key_value) - 4) + key_value[-4:] if len(key_value) > 4 else '•' * len(key_value)
+    return jsonify({'ok': True, 'masked_key': masked})
+
+
+@disputes_bp.route('/settings/docupost-key/delete', methods=['POST'])
+@login_required
+def delete_docupost_key():
+    """Remove the user's stored DocuPost API key."""
+    UserSetting.query.filter_by(user_id=current_user.id, key='docupost_api_token').delete()
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+@disputes_bp.route('/settings/docupost-key/test', methods=['POST'])
+@login_required
+def test_docupost_key():
+    """Test the user's DocuPost API key by making a lightweight API call."""
+    token = get_docupost_token(current_user.id)
+    if not token:
+        return jsonify({'ok': False, 'error': 'No DocuPost key configured'}), 400
+
+    import requests as req
+    try:
+        resp = req.get('https://app.docupost.com/api/1.1/wf/account_info',
+                       params={'api_token': token}, timeout=10)
+        if resp.status_code == 200 and b'<Error>' not in resp.content:
+            return jsonify({'ok': True, 'message': 'Key is valid'})
+        else:
+            return jsonify({'ok': False, 'error': 'Key rejected by DocuPost'}), 400
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500

@@ -1,0 +1,138 @@
+{% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<main class="flex justify-center items-start min-h-[90vh] px-4 py-10">
+  <div class="glass-card glass-card--heavy glass-p w-full max-w-2xl glass-animate-in">
+
+    <div class="text-center mb-8">
+      <div class="glass-icon-well mx-auto mb-4" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
+        {{ icons.icon_shield(size=28, uid='s1') }}
+      </div>
+      <h2 class="text-3xl font-bold glass-text-3d" style="color:var(--text-primary);">Settings</h2>
+      <p class="text-sm mt-1" style="color:var(--text-tertiary);">Manage your API keys and preferences</p>
+    </div>
+
+    <!-- DocuPost BYOK -->
+    <div class="glass-inset rounded-2xl p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="glass-icon-well" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;">
+          {{ icons.icon_mailbox(size=20, uid='s2') }}
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold glass-text-emboss" style="color:var(--text-primary);">DocuPost API Key</h3>
+          <p class="text-xs" style="color:var(--text-tertiary);">Used for mailing dispute letters via USPS</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Status -->
+        <div class="flex items-center gap-2">
+          <div id="keyStatusDot" style="width:10px;height:10px;border-radius:50%;background:{% if has_docupost_key %}#34d399{% else %}rgba(255,255,255,0.2){% endif %};flex-shrink:0;"></div>
+          <span id="keyStatusText" class="text-sm" style="color:var(--text-secondary);">
+            {% if has_docupost_key %}Connected — {{ masked_key }}{% else %}No key configured{% endif %}
+          </span>
+        </div>
+
+        <!-- Input -->
+        <div class="flex gap-3">
+          <input type="password" id="docupostKeyInput"
+                 class="glass-input flex-1"
+                 placeholder="{% if has_docupost_key %}Enter new key to replace{% else %}Paste your DocuPost API token{% endif %}" />
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-3 flex-wrap">
+          <button type="button" id="saveKeyBtn"
+                  class="glass-btn glass-btn--primary glass-btn--pill glass-shimmer-edge text-sm px-5 py-2"
+                  style="position:relative;overflow:hidden;">
+            Save Key
+          </button>
+          {% if has_docupost_key %}
+          <button type="button" id="testKeyBtn"
+                  class="glass-btn glass-btn--pill text-sm px-5 py-2" style="color:var(--text-primary);">
+            Test Connection
+          </button>
+          <button type="button" id="removeKeyBtn"
+                  class="glass-btn glass-btn--pill text-sm px-5 py-2" style="color:#ff453a;">
+            Remove Key
+          </button>
+          {% endif %}
+        </div>
+
+        <div id="keyMessage" class="text-sm" style="min-height:1.2em;"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+(function(){
+  const input = document.getElementById('docupostKeyInput');
+  const saveBtn = document.getElementById('saveKeyBtn');
+  const testBtn = document.getElementById('testKeyBtn');
+  const removeBtn = document.getElementById('removeKeyBtn');
+  const msg = document.getElementById('keyMessage');
+  const dot = document.getElementById('keyStatusDot');
+  const statusText = document.getElementById('keyStatusText');
+
+  function showMsg(text, color) {
+    msg.textContent = text;
+    msg.style.color = color || 'var(--text-secondary)';
+    setTimeout(() => { msg.textContent = ''; }, 4000);
+  }
+
+  saveBtn.addEventListener('click', async () => {
+    const key = input.value.trim();
+    if (!key) { showMsg('Please enter an API key', '#ff453a'); return; }
+    showMsg('Saving...', 'var(--text-secondary)');
+    try {
+      const res = await fetch('/settings/docupost-key', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({api_key: key})
+      });
+      const data = await res.json();
+      if (data.ok) {
+        dot.style.background = '#34d399';
+        statusText.textContent = 'Connected — ' + data.masked_key;
+        input.value = '';
+        input.placeholder = 'Enter new key to replace';
+        showMsg('Key saved and encrypted!', '#248a3d');
+        // Reload to show test/remove buttons
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        showMsg(data.error || 'Failed to save', '#ff453a');
+      }
+    } catch(e) { showMsg('Network error', '#ff453a'); }
+  });
+
+  if (testBtn) testBtn.addEventListener('click', async () => {
+    showMsg('Testing...', 'var(--text-secondary)');
+    try {
+      const res = await fetch('/settings/docupost-key/test', {method:'POST'});
+      const data = await res.json();
+      showMsg(data.ok ? 'Connection successful!' : (data.error || 'Test failed'),
+              data.ok ? '#248a3d' : '#ff453a');
+    } catch(e) { showMsg('Network error', '#ff453a'); }
+  });
+
+  if (removeBtn) removeBtn.addEventListener('click', async () => {
+    if (!confirm('Remove your DocuPost API key?')) return;
+    try {
+      const res = await fetch('/settings/docupost-key/delete', {method:'POST'});
+      const data = await res.json();
+      if (data.ok) {
+        dot.style.background = 'rgba(255,255,255,0.2)';
+        statusText.textContent = 'No key configured';
+        showMsg('Key removed', 'var(--text-secondary)');
+        setTimeout(() => window.location.reload(), 1200);
+      }
+    } catch(e) { showMsg('Network error', '#ff453a'); }
+  });
+})();
+</script>
+{% endblock %}
