@@ -1,65 +1,66 @@
-# Dispute-GPT
-Dispute GPT is a Python script designed to streamline the process of handling credit report discrepancies and generating dispute letters. 
+# DisputeGPT
 
-# __Installation__ 
-Clone this repository to your local machine by copying the code:
-```shell
+Autonomous credit repair software. Upload credit reports, analyze negative items with AI, generate dispute letters, and mail them — all from one dashboard.
+
+## Quick Start
+
+```bash
 git clone https://github.com/itsbergomy/Dispute-GPT.git
-```
-Navigate to the project directory via terminal/command prompt:
-```shell
-cd dispute-gpt
-```
-Install the required Python packages:
-```shell
+cd Dispute-GPT
 pip install -r requirements.txt
+cp .env.example .env   # Fill in your API keys
+python app.py
 ```
 
-## __Configuration__
-Before using Dispute-GPT, you need to set up your OpenAI API key. Follow these steps:
-1. Go to [OpenAI] (www.openai.com)
-2. Click Menu, which should be in the top right corner
-3. Click on API, then click on Overview. The page should open with a blue banner click the 'Get Started' button.
-4. You'll then be tasked with creating your own account with a Username and Password.
-5. Once your account is made you'll see Personal somewhere at the top of the page, click it then click 'View API Key'.
-6. Click create a new secret key, then Vwala! If you've never done this, you created your first API key. Congrats
+Open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your browser.
 
-# __Video Setup__
-If you are more of a visual learner, here's an instructional video:
-https://www.loom.com/share/be96e1e0e9054d44af16d5f3ec62206c?sid=f6be7426-444a-4dc6-b1ee-2160b9242640
+## Features
 
-# __Demo__
-This is a Demo Video of the Alpha Version of the application, check it out:
-https://www.loom.com/share/b526f2cc65a24b05a63b2528d3a72c64?sid=1f414618-8566-4377-8847-9730a5eeae8e
+- **AI Credit Report Analysis** — Upload a PDF credit report, GPT extracts and analyzes every negative item
+- **Autonomous Dispute Pipeline** — Agent handles strategy selection, letter generation, review, and mailing across multiple rounds
+- **Prompt Packs** — Swap dispute strategies per round (Default, Consumer Law, ACDV Response, Arbitration)
+- **Custom Letter Templates** — Upload your own letters (PDF/DOCX/TXT), use them as templates with auto-filled client and account data
+- **Supervised & Full Auto Modes** — Review every letter before it goes out, or let the agent run end-to-end
+- **Round-by-Round Control** — Pipeline pauses between rounds so you can review outcomes and decide next steps
+- **DocuPost Integration** — Letters mailed via USPS through the DocuPost API
+- **Multi-Client CRM** — Manage multiple clients, track pipelines, store correspondence
 
+## User Roles
 
+| Role | Access |
+|------|--------|
+| **Free** | Manual dispute flow — upload PDF, generate one letter at a time |
+| **Pro** | Full dispute folder, report analyzer, mail letters, correspondence tracking |
+| **Business** | Everything in Pro + CRM dashboard, autonomous pipeline, custom letters, team features |
 
-# __Usage__
-## Dispute Mode
-To generate dispute letters based on a __Experian__ PDF file, use the following command:
-```shell
-python cli.py --mode dispute --pdf_path /path/to/your/file.pdf
+## Architecture
+
+- **Flask** — Web framework with Jinja2 templates
+- **SQLite** — Database (via SQLAlchemy + Flask-Migrate)
+- **OpenAI GPT** — Credit report analysis and letter generation
+- **Huey** — Background task queue (with thread-based fallback for development)
+- **DocuPost API** — USPS letter mailing
+- **Liquid Glass UI** — Custom CSS design system with frosted glass effects
+
+## Environment Variables
+
+See [`.env.example`](.env.example) for all required configuration.
+
+## Development
+
+All future changes go through feature branches and pull requests:
+
+```bash
+git checkout -b feature/your-feature
+# make changes
+git push -u origin feature/your-feature
+# create PR on GitHub
 ```
-Replace '/path/to/your/file.pdf' with the actual path to the PDF file you want to process. This mode extracts information from the PDF and generates  dispute letters.
 
-# __Chat Mode__
-To enter interactive chat mode with the AI assistant, use the following command:
-```shell
-python cli.py --mode chat
-```
-In chat mode, you can have a conversation with the AI assistant by typing messages as the "User." Type 'quit' to exit chat mode.
+## License
 
-# __Web Prototype__
-A minimal Flask server allows you to upload a PDF and run Dispute GPT from your browser. Start it with `python app.py` and visit `http://localhost:5000`.
+MIT License — see LICENSE for details.
 
-# __Contributing__
-We welcome contributions to Dispute-GPT. If you find any bugs, have feature suggestions/requests, or want to contribute code please create an issue or submit a pull request.
+## Contributing
 
-# __License__
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-Please customize this documentation to fit your specific project and requirements. You can include additional sections or information as needed.
-
-
-
-
+Issues and pull requests welcome. See the feature branch workflow above.
