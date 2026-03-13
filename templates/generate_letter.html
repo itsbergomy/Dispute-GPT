@@ -1,16 +1,19 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 
 {% block title %}Generating Letter{% endblock %}
 
 {% block content %}
 <main class="flex justify-center items-center min-h-[75vh] px-4">
   <div class="glass-card glass-card--heavy glass-p text-center max-w-xl w-full glass-animate-in">
-    
-    <!-- Animated Icon -->
-    <div class="text-4xl mb-6 text-blue-900 animate-spin">⏳</div>
 
-    <h2 class="text-2xl font-bold text-[#2C3E50] mb-4">Generating Your Dispute Letter...</h2>
-    <p class="text-lg text-[#2C3E50]">Please wait while we prepare your document.</p>
+    <!-- Animated Icon -->
+    <div class="glass-icon-well mx-auto mb-6 glass-breathe" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
+      {{ icons.icon_ai(size=28, uid='gl1') }}
+    </div>
+
+    <h2 class="text-2xl font-bold mb-4 glass-text-3d" style="color:var(--text-primary);">Generating Your Dispute Letter...</h2>
+    <p class="text-lg" style="color:var(--text-secondary);">Please wait while we prepare your document.</p>
   </div>
 </main>
 
@@ -20,4 +23,3 @@
   }, 500);
 </script>
 {% endblock %}
-

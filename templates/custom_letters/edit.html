@@ -4,7 +4,7 @@
   <a href="{{ url_for('business.list_custom_letters') }}"
      class="glass-btn glass-btn--ghost mb-4 inline-flex items-center gap-1 text-sm">← Back to Letters</a>
   <div class="glass-card glass-card--heavy glass-p-lg">
-    <h2 class="text-3xl font-bold text-gray-900 mb-6">Edit Custom Letter</h2>
+    <h2 class="text-3xl font-bold mb-6 glass-text-3d" style="color:var(--text-primary);">Edit Custom Letter</h2>
     <form method="POST" action="{{ url_for('business.edit_custom_letter', letter_id=letter.id) }}" class="space-y-6">
       <!-- Template Name -->
       <div>

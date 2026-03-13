@@ -1,24 +1,32 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 {% block title %}DisputeGPT Result — {{ client.first_name }}{% endblock %}
 
 {% block content %}
 <main class="pt-20 pb-12 min-h-screen px-6 md:px-12">
-  <div class="glass-card glass-card--heavy glass-p">
+  <div class="glass-card glass-card--heavy glass-p glass-animate-in">
 
     <!-- Back Button -->
     <a href="{{ url_for('view_client', client_id=client.id) }}"
        class="glass-btn glass-btn--secondary mb-6 inline-block">
-      ← Back to Client
+      &larr; Back to Client
     </a>
 
-    <h2 class="text-2xl font-bold text-blue-900 mb-4">📄 Generated Dispute Letter</h2>
+    <div class="flex items-center gap-3 mb-4">
+      <div class="glass-icon-well" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;">
+        {{ icons.icon_document(size=22, uid='dgr1') }}
+      </div>
+      <h2 class="text-2xl font-bold glass-text-3d" style="color:var(--text-primary);">Generated Dispute Letter</h2>
+    </div>
 
     <form method="POST" action="{{ url_for('finalize_disputegpt_letter', client_id=client.id) }}" enctype="multipart/form-data" class="space-y-6">
 
       <!-- Editable Letter -->
-      <textarea name="edited_letter" rows="20" class="glass-input glass-textarea w-full font-mono text-sm">
+      <div class="glass-inset rounded-xl p-4">
+        <textarea name="edited_letter" rows="20" class="glass-input glass-textarea w-full text-sm" style="background:transparent;border:none;box-shadow:none;">
 {{ letter }}
-      </textarea>
+        </textarea>
+      </div>
 
       <!-- File Uploads -->
       <div>
@@ -35,12 +43,12 @@
       <div class="flex space-x-4">
         <button formaction="{{ url_for('convert_pdf') }}" formmethod="POST"
                 class="glass-btn glass-btn--secondary">
-          📄 Convert to PDF Package
+          Convert to PDF Package
         </button>
 
         <button type="submit"
-                class="glass-btn glass-btn--primary">
-          🚀 Finalize Letter & Mail
+                class="glass-btn glass-btn--primary glass-shimmer-edge" style="position:relative;overflow:hidden;">
+          Finalize Letter &amp; Mail
         </button>
       </div>
     </form>

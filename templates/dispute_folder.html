@@ -1,4 +1,5 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 {% block title %}Dispute Folder{% endblock %}
 
 {% block content %}
@@ -10,7 +11,12 @@
       &larr; Back
     </a>
 
-    <h1 class="text-3xl font-extrabold mb-6">Your Dispute Folder</h1>
+    <div class="flex items-center gap-4 mb-6 glass-animate-in">
+      <div class="glass-icon-well" style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:14px;">
+        {{ icons.icon_briefcase(size=26, uid='df1') }}
+      </div>
+      <h1 class="text-3xl font-extrabold glass-text-chrome" style="color:var(--text-primary);">Your Dispute Folder</h1>
+    </div>
 
     <!-- Tabs -->
     <div class="glass-tabs mb-6">
@@ -20,19 +26,19 @@
     </div>
 
     <!-- Daily Log -->
-    <div id="panel-logs" class="tab-panel">
+    <div id="panel-logs" class="tab-panel glass-animate-in">
       {% for entry in logs %}
         <div class="mb-3 glass-card glass-card--light rounded-xl p-4">
           <div class="text-xs" style="color:var(--text-tertiary);">{{ entry.timestamp }}</div>
-          <p class="mt-1 text-sm">{{ entry.description }}</p>
+          <p class="mt-1 text-sm" style="color:var(--text-secondary);">{{ entry.description }}</p>
         </div>
       {% else %}
         <p class="text-sm" style="color:var(--text-tertiary);">No log entries yet.</p>
       {% endfor %}
-      <form action="{{ url_for('disputes.add_log') }}" method="POST" class="mt-4 glass-card glass-card--light rounded-xl p-4">
+      <form action="{{ url_for('disputes.add_log') }}" method="POST" class="mt-4 glass-inset rounded-xl p-5">
         <input name="title" required class="glass-input mb-2" placeholder="Title" />
         <textarea name="content" required class="glass-input glass-textarea" placeholder="Describe your activity..."></textarea>
-        <button type="submit" class="mt-2 glass-btn glass-btn--primary">Add Log Entry</button>
+        <button type="submit" class="mt-2 glass-btn glass-btn--primary glass-btn--pill">Add Log Entry</button>
       </form>
     </div>
 
@@ -41,14 +47,14 @@
       {% for L in letters %}
         <div class="mb-3 glass-card glass-card--light rounded-xl p-4">
           <div class="text-xs" style="color:var(--text-tertiary);">{{ L.created_at }}</div>
-          <p class="mt-1 text-sm">{{ L.letter_text[:120] }}...</p>
+          <p class="mt-1 text-sm" style="color:var(--text-secondary);">{{ L.letter_text[:120] }}...</p>
         </div>
       {% else %}
         <p class="text-sm" style="color:var(--text-tertiary);">No mailed letters recorded.</p>
       {% endfor %}
-      <form action="{{ url_for('disputes.add_letter') }}" method="POST" class="mt-4 glass-card glass-card--light rounded-xl p-4">
+      <form action="{{ url_for('disputes.add_letter') }}" method="POST" class="mt-4 glass-inset rounded-xl p-5">
         <textarea name="letter_text" required class="glass-input glass-textarea" placeholder="Paste letter text..."></textarea>
-        <button type="submit" class="mt-2 glass-btn glass-btn--primary">Record Mailed Letter</button>
+        <button type="submit" class="mt-2 glass-btn glass-btn--primary glass-btn--pill">Record Mailed Letter</button>
       </form>
     </div>
 
@@ -65,10 +71,10 @@
         <p class="text-sm" style="color:var(--text-tertiary);">No documents uploaded.</p>
       {% endfor %}
       <form action="{{ url_for('disputes.upload_doc') }}" method="POST" enctype="multipart/form-data"
-            class="mt-4 glass-card glass-card--light rounded-xl p-4">
+            class="mt-4 glass-inset rounded-xl p-5">
         <label class="glass-label mb-2">Upload a document</label>
         <input type="file" name="file" required class="glass-input mb-2" />
-        <button type="submit" class="glass-btn glass-btn--primary">Upload</button>
+        <button type="submit" class="glass-btn glass-btn--primary glass-btn--pill">Upload</button>
       </form>
     </div>
 

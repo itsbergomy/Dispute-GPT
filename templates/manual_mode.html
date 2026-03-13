@@ -1,49 +1,61 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 {% block title %}Manual Dispute Mode{% endblock %}
 {% block content %}
 <main class="flex justify-center items-center min-h-[75vh] px-4 py-10">
   <div class="glass-card glass-card--heavy glass-p max-w-xl w-full relative glass-animate-in">
     <a href="{% if current_user.plan == 'business' %}{{ url_for('business.business_dashboard') }}{% else %}{{ url_for('disputes.index') }}{% endif %}"
        class="absolute top-6 left-6 glass-btn glass-btn--ghost p-3 rounded-full">
-      ←
+      &larr;
     </a>
-    <h2 class="text-2xl font-bold text-[#2C3E50] mb-6 text-center">Define Letter Details (Manual Mode)</h2>
+
+    <div class="text-center mb-6">
+      <div class="glass-icon-well mx-auto mb-4" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
+        {{ icons.icon_document(size=28, uid='mm1') }}
+      </div>
+      <h2 class="text-2xl font-bold glass-text-3d" style="color:var(--text-primary);">Define Letter Details (Manual Mode)</h2>
+    </div>
+
     <form method="POST" action="{{ url_for('manual_mode') }}" class="space-y-5">
-      <div>
-        <label class="glass-label block">Account Name:</label>
-        <input name="account_name" required placeholder="e.g., Capital One" 
-               class="glass-input w-full" />
-      </div>
-      <div>
-        <label class="glass-label block">Account Number:</label>
-        <input name="account_number" required placeholder="e.g., XXXX-1234" 
-               class="glass-input w-full" />
-      </div>
-      <div>
-        <label class="glass-label block">Account Status:</label>
-        <input name="status" required placeholder="e.g., Charged Off" 
-               class="glass-input w-full" />
-      </div>
-      <div>
-        <p class="glass-label">Select Entity for Dispute:</p>
-        <div class="flex gap-4">
-          <label><input type="radio" name="entity" value="Experian" required /> Experian</label>
-          <label><input type="radio" name="entity" value="TransUnion" /> TransUnion</label>
-          <label><input type="radio" name="entity" value="Equifax" /> Equifax</label>
+      <div class="glass-inset rounded-xl p-5 space-y-5">
+        <div>
+          <label class="glass-label block">Account Name:</label>
+          <input name="account_name" required placeholder="e.g., Capital One"
+                 class="glass-input w-full" />
+        </div>
+        <div>
+          <label class="glass-label block">Account Number:</label>
+          <input name="account_number" required placeholder="e.g., XXXX-1234"
+                 class="glass-input w-full" />
+        </div>
+        <div>
+          <label class="glass-label block">Account Status:</label>
+          <input name="status" required placeholder="e.g., Charged Off"
+                 class="glass-input w-full" />
+        </div>
+        <div>
+          <p class="glass-label">Select Entity for Dispute:</p>
+          <div class="flex gap-4" style="color:var(--text-primary);">
+            <label><input type="radio" name="entity" value="Experian" required style="accent-color:var(--accent);"/> Experian</label>
+            <label><input type="radio" name="entity" value="TransUnion" style="accent-color:var(--accent);"/> TransUnion</label>
+            <label><input type="radio" name="entity" value="Equifax" style="accent-color:var(--accent);"/> Equifax</label>
+          </div>
+        </div>
+        <div>
+          <label class="glass-label block">Action for the letter:</label>
+          <input name="action" required placeholder="e.g., Dispute"
+                 class="glass-input w-full" />
+        </div>
+        <div>
+          <label class="glass-label block">Issue for the letter:</label>
+          <input name="issue" required placeholder="e.g., Incorrect balance"
+                 class="glass-input w-full" />
         </div>
       </div>
-      <div>
-        <label class="glass-label block">Action for the letter:</label>
-        <input name="action" required placeholder="e.g., Dispute" 
-               class="glass-input w-full" />
-      </div>
-      <div>
-        <label class="glass-label block">Issue for the letter:</label>
-        <input name="issue" required placeholder="e.g., Incorrect balance" 
-               class="glass-input w-full" />
-      </div>
+
       <button type="submit"
-              class="w-full glass-btn glass-btn--primary">
+              class="w-full glass-btn glass-btn--primary glass-shimmer-edge"
+              style="position:relative;overflow:hidden;">
         Next: Select Prompt Template
       </button>
     </form>

@@ -1,4 +1,5 @@
 {% extends "base_header.html" %}
+{% import '_icons.html' as icons %}
 {% block title %}{{ client.first_name }} {{ client.last_name }}{% endblock %}
 
 {% block content %}
@@ -14,12 +15,12 @@
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <!-- Avatar + Info -->
       <div class="flex items-center gap-4">
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold"
+        <div class="glass-icon-raised w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold"
              style="background:linear-gradient(135deg,var(--accent),#6366f1);color:#fff;">
           {{ client.first_name[0] }}{{ client.last_name[0] }}
         </div>
         <div>
-          <h1 class="text-2xl font-bold">{{ client.first_name }} {{ client.last_name }}</h1>
+          <h1 class="text-2xl font-bold glass-text-chrome">{{ client.first_name }} {{ client.last_name }}</h1>
           <p class="text-sm" style="color:var(--text-secondary);">{{ client.email }}</p>
           {% if client.city %}
           <p class="text-xs mt-0.5" style="color:var(--text-tertiary);">
@@ -33,27 +34,30 @@
       <div class="flex flex-wrap items-center gap-2">
         <form id="runAnalyzerForm" method="POST" action="{{ url_for('business.run_analysis_for_client', client_id=client.id) }}" style="display:inline;">
           <button id="runAnalyzerBtn" type="submit"
-                  class="glass-btn glass-btn--pill px-4 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
-                  style="background:rgba(255,255,255,0.12);">
+                  class="glass-btn glass-btn--primary glass-btn--pill glass-shimmer-edge px-4 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
+                  style="position:relative;overflow:hidden;">
             <svg class="h-3.5 w-3.5 hidden animate-spin" id="runAnalyzerSpin" viewBox="0 0 24 24" fill="none">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 008 12H4z"/>
             </svg>
-            <span id="runAnalyzerText">&#x1F50D; Run Analyzer</span>
+            {{ icons.icon_search(14, 'ra1') }}
+            <span id="runAnalyzerText">Run Analyzer</span>
           </button>
         </form>
 
         <form method="POST" action="{{ url_for('business.extract_for_disputegpt', client_id=client.id) }}" style="display:inline;">
           <button type="submit"
-                  class="glass-btn glass-btn--pill px-4 py-1.5 text-xs font-semibold"
-                  style="background:rgba(255,255,255,0.12);">
-            &#x1F4CB; Extract Accounts
+                  class="glass-btn glass-btn--primary glass-btn--pill glass-shimmer-edge px-4 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
+                  style="position:relative;overflow:hidden;">
+            {{ icons.icon_document(14, 'ea1') }}
+            Extract Accounts
           </button>
         </form>
 
         <a href="{{ url_for('business.edit_client', client_id=client.id) }}"
-           class="glass-btn glass-btn--pill px-4 py-1.5 text-xs font-semibold"
-           style="background:rgba(255,255,255,0.12);">
+           class="glass-btn glass-raised glass-btn--pill px-4 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
+           style="color:var(--text-primary);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Client
         </a>
       </div>
@@ -64,48 +68,43 @@
   {% if pipeline_status %}
   <div class="glass-card glass-card--heavy rounded-3xl p-6 mb-8 glass-animate-in {{ 'glass-pulse' if pipeline_status.state not in ('completed', 'failed', 'round_review') else '' }}" id="pipelineCard" style="animation-delay:.1s">
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-lg font-bold flex items-center gap-2">
+      <h2 class="text-lg font-bold flex items-center gap-2 glass-text-3d" style="color:var(--text-primary);">
         &#x1F916; Pipeline Active
         <span class="glass-badge glass-badge--info text-xs">{{ pipeline_status.mode|title }}</span>
         <span class="glass-badge glass-badge--neutral text-xs">Round {{ pipeline_status.round_number }} of {{ pipeline_status.max_rounds }}</span>
       </h2>
       <form method="POST" action="/api/pipeline/{{ pipeline_status.id }}/cancel" id="cancelPipelineForm">
         <button type="button" onclick="if(confirm('Cancel this pipeline?')){fetch('/api/pipeline/{{ pipeline_status.id }}/cancel',{method:'POST'}).then(()=>location.reload())}"
-                class="text-xs px-3 py-1 rounded-full font-semibold transition"
-                style="background:rgba(239,68,68,0.15);color:#ef4444;">
+                class="glass-btn glass-btn--pill glass-raised px-4 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
+                style="background:rgba(239,68,68,0.08);color:#ef4444;border:1px solid rgba(239,68,68,0.2);box-shadow:0 2px 8px rgba(239,68,68,0.12),inset 0 1px 0 rgba(255,255,255,0.15);">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
           Cancel
         </button>
       </form>
     </div>
 
     <!-- State Stepper -->
-    <div class="flex items-center gap-1 mb-4 overflow-x-auto pb-1" id="stateStepper">
+    <div class="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1" id="stateStepper">
       {% set states = ['intake', 'strategy', 'generation', 'review', 'delivery', 'awaiting_response', 'round_review', 'completed'] %}
       {% set state_labels = {'intake':'Intake', 'strategy':'Strategy', 'generation':'Letters', 'review':'Review', 'delivery':'Delivery', 'awaiting_response':'Awaiting', 'round_review':'Round Review', 'completed':'Done'} %}
       {% set current = pipeline_status.state %}
       {% set current_idx = states.index(current) if current in states else -1 %}
       {% for s in states %}
         {% if s == current %}
-          <div class="flex items-center gap-1">
-            <div class="px-3 py-1 rounded-full text-xs font-bold" style="background:var(--accent);color:#fff;">
-              {{ state_labels[s] }}
-            </div>
+          <div class="glass-step-chip glass-step-chip--active glass-breathe-fast">
+            {{ state_labels[s] }}
           </div>
         {% elif current_idx >= 0 and loop.index0 < current_idx %}
-          <div class="flex items-center gap-1">
-            <div class="px-2 py-1 rounded-full text-xs font-medium" style="background:rgba(52,199,89,0.2);color:#248a3d;">
-              &#x2713; {{ state_labels[s] }}
-            </div>
+          <div class="glass-step-chip glass-step-chip--done">
+            ✓ {{ state_labels[s] }}
           </div>
         {% else %}
-          <div class="flex items-center gap-1">
-            <div class="px-2 py-1 rounded-full text-xs" style="color:var(--text-tertiary);">
-              {{ state_labels[s] }}
-            </div>
+          <div class="glass-step-chip">
+            {{ state_labels[s] }}
           </div>
         {% endif %}
         {% if not loop.last %}
-          <span style="color:var(--text-tertiary);" class="text-xs">&rarr;</span>
+          <div class="glass-step-connector"></div>
         {% endif %}
       {% endfor %}
     </div>
@@ -123,7 +122,7 @@
       <p class="text-xs font-semibold mb-2" style="color:var(--text-secondary);">Accounts in Dispute</p>
       <div>
         {% for a in pipeline_status.accounts if a.round_number == pipeline_status.round_number %}
-        <div class="glass-list-item flex items-center justify-between text-sm">
+        <div class="glass-list-item glass-raised flex items-center justify-between text-sm" style="transition:box-shadow 0.2s ease,transform 0.2s ease;box-shadow:2px 2px 8px rgba(0,0,0,0.06),-1px -1px 5px rgba(255,255,255,0.3);">
           <div class="flex items-center gap-2">
             {% if a.letter_id and pipeline_status.state == 'review' %}
             <button onclick="openLetterEditor({{ a.letter_id }}, '{{ a.account_name }} — {{ a.bureau }}')"
@@ -171,8 +170,9 @@
     {% if pipeline_status.state == 'review' and pipeline_status.mode == 'supervised' %}
     <div class="flex gap-3">
       <button onclick="fetch('/api/pipeline/{{ pipeline_status.id }}/approve',{method:'POST'}).then(r=>r.json()).then(d=>{if(d.message)location.reload();else alert(d.error||'Error')})"
-              class="glass-btn glass-btn--primary glass-btn--pill text-sm px-6 py-2">
-        &#x2705; Approve Letters &amp; Send
+              class="glass-btn glass-btn--primary glass-btn--pill text-sm px-6 py-2 glass-shimmer-edge"
+              style="position:relative;overflow:hidden;">
+        ✅ Approve Letters &amp; Send
       </button>
     </div>
     {% endif %}
@@ -314,7 +314,7 @@
 
       <!-- DisputeGPT -->
       <div class="glass-card glass-card--heavy rounded-3xl p-6">
-        <h2 class="text-lg font-bold mb-4">DisputeGPT&trade;</h2>
+        <h2 class="text-lg font-bold mb-4 glass-text-3d">DisputeGPT&trade;</h2>
 
         <form method="POST" action="{{ url_for('business.run_disputegpt_flow', client_id=client.id) }}">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -389,7 +389,7 @@
             </div>
           </div>
 
-          <button type="submit" class="glass-btn glass-btn--primary w-full">
+          <button type="submit" class="glass-btn glass-btn--primary w-full glass-shimmer-edge" style="position:relative;overflow:hidden;">
             Generate Letter
           </button>
         </form>
@@ -397,12 +397,15 @@
 
       <!-- Client Documents -->
       <div class="glass-card glass-card--heavy rounded-3xl p-6">
-        <h2 class="text-lg font-bold mb-4">Documents</h2>
+        <h2 class="text-lg font-bold mb-4 glass-text-3d">Documents</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {% if client.id_filename %}
           <a href="{{ url_for('business.client_file', client_id=client.id, filetype='id') }}" target="_blank"
-             class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-3 hover:scale-[1.01] transition-transform">
-            <span class="text-2xl">&#x1F194;</span>
+             class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-4 hover:scale-[1.01] transition-all duration-200"
+             onmouseenter="this.classList.add('glass-raised')" onmouseleave="this.classList.remove('glass-raised')">
+            <div class="glass-icon-well flex items-center justify-center" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;">
+              {{ icons.icon_id(size=22, uid='doc1') }}
+            </div>
             <div>
               <div class="text-sm font-semibold">ID Document</div>
               <div class="text-xs" style="color:var(--text-tertiary);">Click to view</div>
@@ -412,8 +415,11 @@
 
           {% if client.ssn_filename %}
           <a href="{{ url_for('business.client_file', client_id=client.id, filetype='ssn') }}" target="_blank"
-             class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-3 hover:scale-[1.01] transition-transform">
-            <span class="text-2xl">&#x1F4B3;</span>
+             class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-4 hover:scale-[1.01] transition-all duration-200"
+             onmouseenter="this.classList.add('glass-raised')" onmouseleave="this.classList.remove('glass-raised')">
+            <div class="glass-icon-well flex items-center justify-center" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;">
+              {{ icons.icon_ssn(size=22, uid='doc2') }}
+            </div>
             <div>
               <div class="text-sm font-semibold">SSN Card</div>
               <div class="text-xs" style="color:var(--text-tertiary);">Click to view</div>
@@ -423,8 +429,11 @@
 
           {% if client.pdf_filename %}
           <a href="{{ url_for('business.client_file', client_id=client.id, filetype='pdf') }}" target="_blank"
-             class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-3 hover:scale-[1.01] transition-transform">
-            <span class="text-2xl">&#x1F4C4;</span>
+             class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-4 hover:scale-[1.01] transition-all duration-200"
+             onmouseenter="this.classList.add('glass-raised')" onmouseleave="this.classList.remove('glass-raised')">
+            <div class="glass-icon-well flex items-center justify-center" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;">
+              {{ icons.icon_file(size=22, uid='doc3') }}
+            </div>
             <div>
               <div class="text-sm font-semibold">Credit Report</div>
               <div class="text-xs" style="color:var(--text-tertiary);">Click to view</div>
@@ -433,8 +442,10 @@
           {% endif %}
 
           {% if client.notes %}
-          <div class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-3">
-            <span class="text-2xl">&#x1F5D2;</span>
+          <div class="glass-card glass-card--light rounded-xl p-3 flex items-center gap-4">
+            <div class="glass-icon-well flex items-center justify-center" style="width:40px;height:40px;border-radius:12px;flex-shrink:0;">
+              {{ icons.icon_notes(size=22, uid='doc4') }}
+            </div>
             <div>
               <div class="text-sm font-semibold">Notes</div>
               <div class="text-xs" style="color:var(--text-tertiary);">{{ client.notes[:60] }}{% if client.notes|length > 60 %}...{% endif %}</div>
@@ -474,7 +485,7 @@
 
       <!-- Mailed Letters (Archive / Backup) -->
       <div class="glass-card glass-card--heavy rounded-3xl p-6">
-        <h2 class="text-lg font-bold mb-4">Mailed Letters</h2>
+        <h2 class="text-lg font-bold mb-4 glass-text-3d">Mailed Letters</h2>
         {% if letters %}
         <div class="space-y-2">
           {% for L in letters %}
@@ -502,27 +513,8 @@
 
     </div>
 
-    <!-- ═══════════════ RIGHT COLUMN (2/5) — PDF + Analysis ═══════════════ -->
+    <!-- ═══════════════ RIGHT COLUMN (2/5) — Analysis ═══════════════ -->
     <div class="lg:col-span-2 space-y-6 glass-animate-in" style="animation-delay:.2s">
-
-      <!-- Credit Report Preview -->
-      {% if client.pdf_filename %}
-      <div class="glass-card glass-card--heavy rounded-3xl overflow-hidden">
-        <div class="px-5 py-3 border-b border-white/10">
-          <h3 class="text-sm font-semibold">Credit Report</h3>
-        </div>
-        <object
-          data="{{ url_for('business.client_file', client_id=client.id, filetype='pdf') }}"
-          type="application/pdf"
-          class="w-full" style="height:60vh;display:block;">
-          <p class="p-6 text-center text-sm" style="color:var(--text-tertiary);">
-            Inline PDF not supported.
-            <a href="{{ url_for('business.client_file', client_id=client.id, filetype='pdf') }}"
-               class="font-medium" style="color:var(--accent);">Download</a>
-          </p>
-        </object>
-      </div>
-      {% endif %}
 
       <!-- Analysis Results -->
       <div id="analyzerStatus" class="text-sm" style="color:var(--text-secondary);" aria-live="polite"></div>
@@ -549,29 +541,29 @@
             </div>
 
             <div class="grid grid-cols-2 gap-2 mb-3">
-              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+              <div class="glass-inset rounded-xl p-2 text-center">
                 <div class="text-xs" style="color:var(--text-tertiary);">FICO</div>
-                <div class="text-xl font-bold">{{ data.fico_score }}</div>
+                <div class="text-xl font-bold glass-text-emboss">{{ data.fico_score }}</div>
               </div>
-              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+              <div class="glass-inset rounded-xl p-2 text-center">
                 <div class="text-xs" style="color:var(--text-tertiary);">Utilization</div>
-                <div class="text-xl font-bold">{{ data.utilization }}%</div>
+                <div class="text-xl font-bold glass-text-emboss">{{ data.utilization }}%</div>
               </div>
-              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+              <div class="glass-inset rounded-xl p-2 text-center">
                 <div class="text-xs" style="color:var(--text-tertiary);">Collections</div>
-                <div class="text-xl font-bold">{{ data.num_collections }}</div>
+                <div class="text-xl font-bold glass-text-emboss">{{ data.num_collections }}</div>
               </div>
-              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+              <div class="glass-inset rounded-xl p-2 text-center">
                 <div class="text-xs" style="color:var(--text-tertiary);">Total Debt</div>
-                <div class="text-xl font-bold">${{ data.total_debt }}</div>
+                <div class="text-xl font-bold glass-text-emboss">${{ data.total_debt }}</div>
               </div>
-              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+              <div class="glass-inset rounded-xl p-2 text-center">
                 <div class="text-xs" style="color:var(--text-tertiary);">Negatives</div>
-                <div class="text-xl font-bold">{{ data.negative_count }}</div>
+                <div class="text-xl font-bold glass-text-emboss">{{ data.negative_count }}</div>
               </div>
-              <div class="glass-card glass-card--light rounded-xl p-2 text-center">
+              <div class="glass-inset rounded-xl p-2 text-center">
                 <div class="text-xs" style="color:var(--text-tertiary);">Credit Age</div>
-                <div class="text-sm font-bold">{{ data.oldest_account_age }}</div>
+                <div class="text-sm font-bold glass-text-emboss">{{ data.oldest_account_age }}</div>
               </div>
             </div>
 
