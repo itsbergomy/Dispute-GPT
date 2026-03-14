@@ -526,23 +526,34 @@
   // Observe stagger containers
   document.querySelectorAll('.reveal-stagger').forEach(el => io.observe(el));
 
-  // Specular light animation — subtle ambient light drift
+  // Ambient light animation — unified drift across background + glass surfaces
   (function() {
     const light = document.getElementById('specular-light');
-    if (!light) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const baseX = 200, baseY = -100;
     const rangeX = 300, rangeY = 150;
     const periodX = 17000, periodY = 23000;
     const start = performance.now();
+    const body = document.body;
 
     function animate(now) {
       const elapsed = now - start;
-      const x = baseX + Math.sin((elapsed / periodX) * Math.PI * 2) * rangeX;
-      const y = baseY + Math.cos((elapsed / periodY) * Math.PI * 2) * rangeY;
-      light.setAttribute('x', x);
-      light.setAttribute('y', y);
+      const sinX = Math.sin((elapsed / periodX) * Math.PI * 2);
+      const cosY = Math.cos((elapsed / periodY) * Math.PI * 2);
+
+      // SVG specular filter light
+      if (light) {
+        light.setAttribute('x', baseX + sinX * rangeX);
+        light.setAttribute('y', baseY + cosY * rangeY);
+      }
+
+      // Background ambient light — wide sweep across viewport
+      const ambientX = 50 + sinX * 40; // drifts 10%–90%
+      const ambientY = 35 + cosY * 30; // drifts 5%–65%
+      body.style.setProperty('--ambient-x', ambientX + '%');
+      body.style.setProperty('--ambient-y', ambientY + '%');
+
       requestAnimationFrame(animate);
     }
     requestAnimationFrame(animate);

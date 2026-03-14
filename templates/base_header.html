@@ -261,7 +261,7 @@
     {% endif %}
   {% endwith %}
 
-  <main class="pt-20">
+  <main class="pt-20 glass-page-transition">
     {% block content %}{% endblock %}
   </main>
 
@@ -493,26 +493,78 @@
       targets.forEach(el => io.observe(el));
     })();
 
-    // ─── Specular light animation — subtle ambient light drift ───
+    // ─── Ambient light animation — unified drift across background + glass surfaces ───
     (function() {
       const light = document.getElementById('specular-light');
-      if (!light) return;
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
       const baseX = 200, baseY = -100;
       const rangeX = 300, rangeY = 150;
       const periodX = 17000, periodY = 23000; // different periods → organic, non-repetitive
       const start = performance.now();
+      const body = document.body;
 
       function animate(now) {
         const elapsed = now - start;
-        const x = baseX + Math.sin((elapsed / periodX) * Math.PI * 2) * rangeX;
-        const y = baseY + Math.cos((elapsed / periodY) * Math.PI * 2) * rangeY;
-        light.setAttribute('x', x);
-        light.setAttribute('y', y);
+        const sinX = Math.sin((elapsed / periodX) * Math.PI * 2);
+        const cosY = Math.cos((elapsed / periodY) * Math.PI * 2);
+
+        // SVG specular filter light
+        if (light) {
+          light.setAttribute('x', baseX + sinX * rangeX);
+          light.setAttribute('y', baseY + cosY * rangeY);
+        }
+
+        // Background ambient light — wide sweep across viewport
+        const ambientX = 50 + sinX * 40; // drifts 10%–90%
+        const ambientY = 35 + cosY * 30; // drifts 5%–65%
+        body.style.setProperty('--ambient-x', ambientX + '%');
+        body.style.setProperty('--ambient-y', ambientY + '%');
+
         requestAnimationFrame(animate);
       }
       requestAnimationFrame(animate);
+    })();
+
+    // ─── Smooth page transitions — intercept navigation for crossfade ───
+    (function() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      // Skip if browser supports View Transitions natively (CSS handles it)
+      if (document.startViewTransition) return;
+
+      document.addEventListener('click', function(e) {
+        const link = e.target.closest('a[href]');
+        if (!link) return;
+
+        const href = link.getAttribute('href');
+        // Skip external links, anchors, javascript:, mailto:, new tabs
+        if (!href || href.startsWith('#') || href.startsWith('javascript:') ||
+            href.startsWith('mailto:') || link.target === '_blank' ||
+            link.hasAttribute('download')) return;
+
+        // Skip if modifier keys (new tab)
+        if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+
+        e.preventDefault();
+        const main = document.querySelector('.glass-page-transition');
+        if (!main) { window.location.href = href; return; }
+
+        main.classList.add('glass-page-transition--exiting');
+        main.addEventListener('animationend', function() {
+          window.location.href = href;
+        }, { once: true });
+
+        // Safety fallback — navigate after 250ms even if animation fails
+        setTimeout(function() { window.location.href = href; }, 250);
+      });
+
+      // Also intercept form submissions
+      document.addEventListener('submit', function(e) {
+        const main = document.querySelector('.glass-page-transition');
+        if (!main) return;
+        main.classList.add('glass-page-transition--exiting');
+      });
     })();
   </script>
   {% endblock %}
