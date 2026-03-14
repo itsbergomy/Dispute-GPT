@@ -1,5 +1,5 @@
 """
-Business dashboard blueprint — client management, analysis, DisputeGPT, custom letters.
+Business dashboard blueprint — client management, analysis, uDispute, custom letters.
 Extracted from dispute_ui.py.
 """
 
@@ -433,9 +433,9 @@ def mail_analysis_to_client(client_id):
     return redirect(url_for('business.view_client', client_id=client.id))
 
 
-@business_bp.route("/client/<int:client_id>/run-disputegpt", methods=["POST"])
+@business_bp.route("/client/<int:client_id>/run-udispute", methods=["POST"])
 @login_required
-def run_disputegpt_flow(client_id):
+def run_udispute_flow(client_id):
     client = Client.query.get_or_404(client_id)
 
     account_number = request.form["account_number"]
@@ -477,16 +477,16 @@ def run_disputegpt_flow(client_id):
     letter = generate_letter(prompt)
 
     flash("Letter generated!", "success")
-    return render_template("disputegpt_result.html",
+    return render_template("udispute_result.html",
                            client=client,
                            letter=letter,
                            custom_letters=current_user.custom_letters,
                            custom_id=custom_id)
 
 
-@business_bp.route("/client/<int:client_id>/finalize-disputegpt", methods=["POST"])
+@business_bp.route("/client/<int:client_id>/finalize-udispute", methods=["POST"])
 @login_required
-def finalize_disputegpt_letter(client_id):
+def finalize_udispute_letter(client_id):
     client = Client.query.get_or_404(client_id)
     final_text = request.form["edited_letter"].strip()
 
@@ -520,9 +520,9 @@ def finalize_disputegpt_letter(client_id):
     return redirect(url_for('disputes.mail_letter'))
 
 
-@business_bp.route('/client/<int:client_id>/extract-disputegpt', methods=['POST'])
+@business_bp.route('/client/<int:client_id>/extract-udispute', methods=['POST'])
 @login_required
-def extract_for_disputegpt(client_id):
+def extract_for_udispute(client_id):
     client = Client.query.get_or_404(client_id)
 
     if not client.pdf_filename:
@@ -793,7 +793,7 @@ def _send_analysis_email(client, analysis):
     """Send analysis results email to client."""
     from flask import render_template as rt
     msg = MailMessage(
-        subject=f"DisputeGPT Analysis Results - For {client.first_name} {client.last_name}",
+        subject=f"uDispute Analysis Results - For {client.first_name} {client.last_name}",
         sender=current_app.config['MAIL_USERNAME'],
         recipients=[client.email]
     )

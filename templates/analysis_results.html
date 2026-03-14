@@ -7,7 +7,7 @@
   <div class="max-w-5xl mx-auto space-y-10">
 
     <a href="{% if current_user.is_authenticated and current_user.plan == 'business' %}{{ url_for('business_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}"
-       class="glass-btn glass-btn--ghost inline-flex items-center gap-1 text-sm">&larr; Back</a>
+       class="glass-btn glass-btn--secondary glass-btn--pill inline-flex items-center gap-1 text-sm">&larr; Back</a>
 
     <!-- Header -->
     <div class="glass-card glass-card--heavy glass-p-lg text-center glass-animate-in">

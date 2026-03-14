@@ -1,0 +1,35 @@
+<!-- SVG Frosted Glass Filter — referenced by backdrop-filter: url(#frosted) -->
+<svg style="position:absolute;width:0;height:0;" aria-hidden="true">
+  <defs>
+    <filter id="frosted" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <!-- Base blur — the main frosted effect -->
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+      <!-- Boost saturation so colors behind the glass stay vibrant -->
+      <feColorMatrix in="blur" type="saturate" values="1.8" result="saturated"/>
+      <!-- Slight brightness lift -->
+      <feComponentTransfer in="saturated" result="bright">
+        <feFuncR type="linear" slope="1.08" intercept="0.02"/>
+        <feFuncG type="linear" slope="1.08" intercept="0.02"/>
+        <feFuncB type="linear" slope="1.08" intercept="0.02"/>
+      </feComponentTransfer>
+      <!-- Specular lighting for that glass shine -->
+      <feSpecularLighting in="blur" surfaceScale="4" specularConstant="0.6"
+                          specularExponent="30" result="specular">
+        <fePointLight id="specular-light" x="200" y="-100" z="300"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceGraphic" operator="in" result="specularMask"/>
+      <!-- Blend specular on top of the brightened blur -->
+      <feBlend in="bright" in2="specularMask" mode="screen" result="final"/>
+    </filter>
+    <!-- Lighter variant for small elements -->
+    <filter id="frosted-light" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="saturate" values="1.6" result="saturated"/>
+      <feComponentTransfer in="saturated" result="bright">
+        <feFuncR type="linear" slope="1.05" intercept="0.01"/>
+        <feFuncG type="linear" slope="1.05" intercept="0.01"/>
+        <feFuncB type="linear" slope="1.05" intercept="0.01"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+</svg>

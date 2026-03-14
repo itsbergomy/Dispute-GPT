@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{% block title %}DisputeGPT{% endblock %}</title>
+  <title>{% block title %}uDispute{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -12,41 +12,7 @@
 </head>
 <body class="glass-body">
 
-<!-- SVG Frosted Glass Filter — referenced by backdrop-filter: url(#frosted) -->
-<svg style="position:absolute;width:0;height:0;" aria-hidden="true">
-  <defs>
-    <filter id="frosted" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-      <!-- Base blur — the main frosted effect -->
-      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
-      <!-- Boost saturation so colors behind the glass stay vibrant -->
-      <feColorMatrix in="blur" type="saturate" values="1.8" result="saturated"/>
-      <!-- Slight brightness lift -->
-      <feComponentTransfer in="saturated" result="bright">
-        <feFuncR type="linear" slope="1.08" intercept="0.02"/>
-        <feFuncG type="linear" slope="1.08" intercept="0.02"/>
-        <feFuncB type="linear" slope="1.08" intercept="0.02"/>
-      </feComponentTransfer>
-      <!-- Specular lighting for that glass shine -->
-      <feSpecularLighting in="blur" surfaceScale="4" specularConstant="0.6"
-                          specularExponent="30" result="specular">
-        <fePointLight x="200" y="-100" z="300"/>
-      </feSpecularLighting>
-      <feComposite in="specular" in2="SourceGraphic" operator="in" result="specularMask"/>
-      <!-- Blend specular on top of the brightened blur -->
-      <feBlend in="bright" in2="specularMask" mode="screen" result="final"/>
-    </filter>
-    <!-- Lighter variant for small elements -->
-    <filter id="frosted-light" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"/>
-      <feColorMatrix in="blur" type="saturate" values="1.6" result="saturated"/>
-      <feComponentTransfer in="saturated" result="bright">
-        <feFuncR type="linear" slope="1.05" intercept="0.01"/>
-        <feFuncG type="linear" slope="1.05" intercept="0.01"/>
-        <feFuncB type="linear" slope="1.05" intercept="0.01"/>
-      </feComponentTransfer>
-    </filter>
-  </defs>
-</svg>
+{% include '_svg_filters.html' %}
 
   <!-- FIXED HEADER -->
   <header class="fixed top-0 left-0 right-0 h-16 glass-header z-40 flex items-center justify-between px-8">
@@ -56,7 +22,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M3 10h4l3 10 4-18 3 10h4" />
         </svg>
-        <span class="glass-text-chrome" style="font-size:inherit;">DisputeGPT</span>
+        <span class="glass-text-chrome" style="font-size:inherit;">uDispute</span>
       </a>
 
       {# Nav links removed — all accessible from dashboard quick links #}
@@ -525,6 +491,28 @@
       }, { threshold: 0.15 });
 
       targets.forEach(el => io.observe(el));
+    })();
+
+    // ─── Specular light animation — subtle ambient light drift ───
+    (function() {
+      const light = document.getElementById('specular-light');
+      if (!light) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const baseX = 200, baseY = -100;
+      const rangeX = 300, rangeY = 150;
+      const periodX = 17000, periodY = 23000; // different periods → organic, non-repetitive
+      const start = performance.now();
+
+      function animate(now) {
+        const elapsed = now - start;
+        const x = baseX + Math.sin((elapsed / periodX) * Math.PI * 2) * rangeX;
+        const y = baseY + Math.cos((elapsed / periodY) * Math.PI * 2) * rangeY;
+        light.setAttribute('x', x);
+        light.setAttribute('y', y);
+        requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
     })();
   </script>
   {% endblock %}

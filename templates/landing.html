@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DisputeGPT — Credit Repair on Autopilot</title>
+  <title>uDispute — Credit Repair on Autopilot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -12,6 +12,19 @@
   <link rel="stylesheet" href="/static/css/liquid-glass.css">
   <style>
     html { scroll-behavior: smooth; }
+
+    /* ── Full-page grain texture ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: url('/static/img/noise.png');
+      background-size: 128px 128px;
+      background-repeat: repeat;
+      opacity: 0.035;
+      pointer-events: none;
+      z-index: 9999;
+    }
 
     /* ── Hero background orbs ── */
     .hero-orb {
@@ -236,6 +249,8 @@
 </head>
 <body class="glass-body glass-body--animated">
 
+{% include '_svg_filters.html' %}
+
 <!-- ═══ Header ═══ -->
 <header class="fixed top-0 left-0 right-0 h-16 glass-header z-40 flex items-center justify-between px-6 md:px-8">
   <a href="/" class="flex items-center text-xl font-bold" style="color:var(--text-primary);">
@@ -243,7 +258,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M3 10h4l3 10 4-18 3 10h4" />
     </svg>
-    DisputeGPT
+    uDispute
   </a>
   <div class="flex items-center space-x-3">
     <a href="/login" class="text-sm font-medium" style="color:var(--text-secondary);">Sign In</a>
@@ -338,7 +353,7 @@
         Everything You Need to Dispute Smarter
       </h2>
       <p class="text-base max-w-xl mx-auto" style="color:var(--text-secondary);">
-        From report analysis to letter mailing — DisputeGPT handles the full dispute lifecycle.
+        From report analysis to letter mailing — uDispute handles the full dispute lifecycle.
       </p>
     </div>
 
@@ -482,7 +497,7 @@
 <!-- ═══ Footer ═══ -->
 <footer class="py-10 px-6 text-center" style="color:var(--text-tertiary);">
   <div class="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-    <p class="text-sm">&copy; 2026 DisputeGPT. All rights reserved.</p>
+    <p class="text-sm">&copy; 2026 uDispute. All rights reserved.</p>
     <div class="flex items-center gap-6 text-sm">
       <a href="/login" class="hover:underline" style="color:var(--text-secondary);">Sign In</a>
       <a href="/signup" class="hover:underline" style="color:var(--text-secondary);">Sign Up</a>
@@ -510,6 +525,28 @@
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
   // Observe stagger containers
   document.querySelectorAll('.reveal-stagger').forEach(el => io.observe(el));
+
+  // Specular light animation — subtle ambient light drift
+  (function() {
+    const light = document.getElementById('specular-light');
+    if (!light) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const baseX = 200, baseY = -100;
+    const rangeX = 300, rangeY = 150;
+    const periodX = 17000, periodY = 23000;
+    const start = performance.now();
+
+    function animate(now) {
+      const elapsed = now - start;
+      const x = baseX + Math.sin((elapsed / periodX) * Math.PI * 2) * rangeX;
+      const y = baseY + Math.cos((elapsed / periodY) * Math.PI * 2) * rangeY;
+      light.setAttribute('x', x);
+      light.setAttribute('y', y);
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+  })();
 </script>
 
 </body>

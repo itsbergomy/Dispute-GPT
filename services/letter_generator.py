@@ -81,7 +81,7 @@ def generate_letter(prompt, model="gpt-4o"):
         messages=[
             {
                 "role": "system",
-                "content": "You are DisputeGPT, a bot that creates credit dispute letters. Use your knowledge of UCC, CFPB regulations, and USC to write compelling letters that address inaccuracies and potential infringements by creditors."
+                "content": "You are uDispute, a bot that creates credit dispute letters. Use your knowledge of UCC, CFPB regulations, and USC to write compelling letters that address inaccuracies and potential infringements by creditors."
             },
             {"role": "user", "content": prompt}
         ]

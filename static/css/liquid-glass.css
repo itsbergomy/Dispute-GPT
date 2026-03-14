@@ -67,6 +67,14 @@
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
 }
 
+/* ── HTML base — eliminates white flash on page navigation ── */
+html {
+  background-color: #d5dbe8;
+  background:
+    linear-gradient(135deg, #e2e8f4 0%, #d0d8e8 30%, #c5cfe0 50%, #d6ddef 70%, #e8ddf0 100%);
+  background-attachment: fixed;
+}
+
 /* ── Body ── */
 body.glass-body {
   font-family: var(--font-body);

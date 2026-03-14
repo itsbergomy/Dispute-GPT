@@ -13,6 +13,7 @@ def _get_fernet():
     """Derive a Fernet key from the Flask SECRET_KEY."""
     secret = current_app.config['SECRET_KEY'].encode()
     # PBKDF2 with SHA-256 → 32 bytes → base64 for Fernet
+    # DO NOT change this salt — it would break decryption of all existing stored BYOK API keys
     dk = hashlib.pbkdf2_hmac('sha256', secret, b'disputegpt-byok-salt', 100_000)
     key = base64.urlsafe_b64encode(dk)
     return Fernet(key)

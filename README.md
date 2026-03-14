@@ -1,6 +1,6 @@
-# DisputeGPT
+# uDispute
 
-Autonomous credit repair software. Upload credit reports, analyze negative items with AI, generate dispute letters, and mail them — all from one dashboard.
+Autonomous credit repair SaaS. Upload credit reports, analyze negative items with AI, generate dispute letters, and mail them — all from one dashboard.
 
 ## Quick Start
 

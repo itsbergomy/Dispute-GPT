@@ -1,6 +1,6 @@
 {% extends "base_header.html" %}
 {% import '_icons.html' as icons %}
-{% block title %}DisputeGPT Result — {{ client.first_name }}{% endblock %}
+{% block title %}uDispute Result — {{ client.first_name }}{% endblock %}
 
 {% block content %}
 <main class="pt-20 pb-12 min-h-screen px-6 md:px-12">
@@ -8,7 +8,7 @@
 
     <!-- Back Button -->
     <a href="{{ url_for('view_client', client_id=client.id) }}"
-       class="glass-btn glass-btn--secondary mb-6 inline-block">
+       class="glass-btn glass-btn--secondary glass-btn--pill mb-6 inline-flex items-center gap-1 text-sm">
       &larr; Back to Client
     </a>
 
@@ -19,7 +19,7 @@
       <h2 class="text-2xl font-bold glass-text-3d" style="color:var(--text-primary);">Generated Dispute Letter</h2>
     </div>
 
-    <form method="POST" action="{{ url_for('finalize_disputegpt_letter', client_id=client.id) }}" enctype="multipart/form-data" class="space-y-6">
+    <form method="POST" action="{{ url_for('finalize_udispute_letter', client_id=client.id) }}" enctype="multipart/form-data" class="space-y-6">
 
       <!-- Editable Letter -->
       <div class="glass-inset rounded-xl p-4">

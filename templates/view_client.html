@@ -6,7 +6,7 @@
 <main class="pt-20 pb-12 min-h-[calc(100vh-4rem)] px-6 md:px-12 max-w-7xl mx-auto">
 
   <a href="{{ url_for('business.business_dashboard') }}"
-     class="inline-flex items-center gap-1 text-sm font-medium mb-6" style="color:var(--accent);">
+     class="glass-btn glass-btn--secondary glass-btn--pill inline-flex items-center gap-1 text-sm mb-6">
     &larr; Back to Dashboard
   </a>
 
@@ -45,7 +45,7 @@
           </button>
         </form>
 
-        <form method="POST" action="{{ url_for('business.extract_for_disputegpt', client_id=client.id) }}" style="display:inline;">
+        <form method="POST" action="{{ url_for('business.extract_for_udispute', client_id=client.id) }}" style="display:inline;">
           <button type="submit"
                   class="glass-btn glass-btn--primary glass-btn--pill glass-shimmer-edge px-4 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
                   style="position:relative;overflow:hidden;">
@@ -374,11 +374,11 @@
     <!-- ═══════════════ LEFT COLUMN (3/5) ═══════════════ -->
     <div class="lg:col-span-3 space-y-6 glass-animate-in" style="animation-delay:.15s">
 
-      <!-- DisputeGPT -->
+      <!-- uDispute -->
       <div class="glass-card glass-card--heavy rounded-3xl p-6">
-        <h2 class="text-lg font-bold mb-4 glass-text-3d">DisputeGPT&trade;</h2>
+        <h2 class="text-lg font-bold mb-4 glass-text-3d">uDispute&trade;</h2>
 
-        <form method="POST" action="{{ url_for('business.run_disputegpt_flow', client_id=client.id) }}">
+        <form method="POST" action="{{ url_for('business.run_udispute_flow', client_id=client.id) }}">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             <div>
               <label class="glass-label text-xs mb-1">Account</label>

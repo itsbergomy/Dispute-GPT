@@ -7,7 +7,7 @@
 <main class="flex justify-center items-center min-h-[100vh] px-4 py-12">
   <div class="max-w-4xl w-full">
     <a href="{% if current_user.plan == 'business' %}{{ url_for('business.business_dashboard') }}{% else %}{{ url_for('disputes.index') }}{% endif %}"
-       class="inline-flex items-center gap-1 text-sm font-medium mb-4" style="color:var(--accent);">
+       class="glass-btn glass-btn--secondary glass-btn--pill inline-flex items-center gap-1 text-sm mb-4">
       &larr; Back
     </a>
     <div class="glass-card glass-card--heavy glass-p-lg glass-animate-in">
