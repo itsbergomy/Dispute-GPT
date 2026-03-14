@@ -7,6 +7,9 @@
 <main class="flex justify-center items-start min-h-[90vh] px-4 py-10">
   <div class="w-full max-w-4xl glass-animate-in">
 
+    <a href="{% if current_user.is_authenticated and current_user.plan == 'business' %}{{ url_for('business_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}"
+       class="absolute top-4 left-4 glass-btn glass-btn--ghost p-3 rounded-full">&larr; Back</a>
+
     <div class="text-center mb-8">
       <div class="glass-icon-well mx-auto mb-4" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
         {{ icons.icon_search(size=28, uid='cf1') }}
@@ -16,98 +19,154 @@
     </div>
 
     <!-- Search Form -->
-    <form method="POST" class="glass-card glass-card--heavy glass-p rounded-3xl mb-6">
+    <form id="cfpbForm" class="glass-card glass-card--heavy glass-p rounded-3xl mb-6">
       <div class="flex gap-3 items-end">
         <div class="flex-1">
           <label class="glass-label block">Company Name</label>
-          <input type="text" name="company" value="{{ company or '' }}" required
+          <input type="text" id="companyInput" required
                  class="glass-input w-full" placeholder="e.g., Equifax, Capital One, Experian" />
         </div>
-        <div class="flex items-center gap-2 pb-2">
+        <div class="flex flex-col gap-2 pb-2">
           <label class="flex items-center gap-2 text-sm" style="color:var(--text-primary);">
-            <input type="checkbox" name="narratives_only" {% if narratives_only %}checked{% endif %}
+            <input type="checkbox" id="narrativesOnly"
                    style="accent-color:var(--accent);" />
             Narratives only
           </label>
+          <select id="responseFilter" class="glass-select text-xs py-1 px-2 rounded-lg">
+            <option value="">All Responses</option>
+            <option value="wins">Wins Only</option>
+            <option value="monetary">Monetary Relief</option>
+            <option value="non_monetary">Non-Monetary Relief</option>
+          </select>
         </div>
-        <button type="submit" class="glass-btn glass-btn--primary glass-btn--pill glass-shimmer-edge text-sm px-6 py-2.5"
+        <button type="submit" id="searchBtn" class="glass-btn glass-btn--primary glass-btn--pill glass-shimmer-edge text-sm px-6 py-2.5"
                 style="position:relative;overflow:hidden;flex-shrink:0;">
-          Search
+          <span id="searchText">Search</span>
+          <span id="searchSpinner" class="hidden inline-flex items-center gap-2">
+            <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            Searching CFPB…
+          </span>
         </button>
       </div>
     </form>
 
-    {% if results %}
-    <!-- Results -->
-    <div class="mb-4 flex items-center justify-between">
-      <span class="text-sm font-semibold glass-text-emboss" style="color:var(--text-primary);">
-        {{ results.total|default(0) }} complaints found for "{{ company }}"
-      </span>
-    </div>
-
-    {% if results.error %}
-    <div class="glass-card glass-card--light rounded-2xl p-5 text-center">
-      <p class="text-sm" style="color:#ff453a;">{{ results.error }}</p>
-    </div>
-    {% elif results.complaints %}
-    <div class="space-y-4 glass-stagger">
-      {% for c in results.complaints %}
-      <div class="glass-card glass-card--light rounded-2xl p-5 glass-animate-in">
-        <div class="flex items-start justify-between gap-4 mb-3">
-          <div>
-            <div class="text-sm font-semibold" style="color:var(--text-primary);">{{ c.product }}</div>
-            {% if c.sub_product %}
-            <div class="text-xs" style="color:var(--text-tertiary);">{{ c.sub_product }}</div>
-            {% endif %}
-          </div>
-          <div class="text-xs flex-shrink-0" style="color:var(--text-tertiary);">{{ c.date_received }}</div>
-        </div>
-
-        <div class="text-sm mb-2" style="color:var(--text-secondary);">
-          <strong>Issue:</strong> {{ c.issue }}{% if c.sub_issue %} — {{ c.sub_issue }}{% endif %}
-        </div>
-
-        {% if c.narrative %}
-        <details class="glass-inset rounded-xl p-4 mb-3">
-          <summary class="text-sm font-medium cursor-pointer" style="color:var(--accent);">View Complaint Narrative</summary>
-          <p class="text-sm mt-3 whitespace-pre-wrap" style="color:var(--text-primary);line-height:1.6;">{{ c.narrative }}</p>
-          <button type="button" class="glass-btn glass-btn--pill text-xs px-3 py-1 mt-3 copy-narrative"
-                  data-text="{{ c.narrative|e }}">
-            Copy to Clipboard
-          </button>
-        </details>
-        {% endif %}
-
-        <div class="flex gap-4 text-xs" style="color:var(--text-tertiary);">
-          {% if c.company_response %}
-          <span><strong>Response:</strong> {{ c.company_response }}</span>
-          {% endif %}
-          {% if c.state %}
-          <span><strong>State:</strong> {{ c.state }}</span>
-          {% endif %}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div class="glass-card glass-card--light rounded-2xl p-6 text-center">
-      <p class="text-sm" style="color:var(--text-tertiary);">No complaints found for "{{ company }}"</p>
-    </div>
-    {% endif %}
-    {% endif %}
+    <!-- Results Container (populated by JS) -->
+    <div id="resultsContainer"></div>
 
   </div>
 </main>
 
 <script>
-document.querySelectorAll('.copy-narrative').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const text = btn.dataset.text;
-    navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = 'Copy to Clipboard'; }, 2000);
+const form = document.getElementById('cfpbForm');
+const resultsContainer = document.getElementById('resultsContainer');
+const searchBtn = document.getElementById('searchBtn');
+const searchText = document.getElementById('searchText');
+const searchSpinner = document.getElementById('searchSpinner');
+
+function setLoading(on) {
+  searchText.classList.toggle('hidden', on);
+  searchSpinner.classList.toggle('hidden', !on);
+  searchBtn.disabled = on;
+  searchBtn.style.opacity = on ? '0.7' : '1';
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function renderResults(data, company) {
+  const total = data.total || 0;
+  let html = `<div class="mb-4 flex items-center justify-between">
+    <span class="text-sm font-semibold glass-text-emboss" style="color:var(--text-primary);">
+      ${total} complaints found for "${escapeHtml(company)}"
+    </span>
+  </div>`;
+
+  if (data.error) {
+    html += `<div class="glass-card glass-card--light rounded-2xl p-5 text-center">
+      <p class="text-sm" style="color:#ff453a;">${escapeHtml(data.error)}</p>
+    </div>`;
+  } else if (data.complaints && data.complaints.length > 0) {
+    html += '<div class="space-y-4 glass-stagger">';
+    data.complaints.forEach(c => {
+      html += `<div class="glass-card glass-card--light rounded-2xl p-5 glass-animate-in">
+        <div class="flex items-start justify-between gap-4 mb-3">
+          <div>
+            <div class="text-sm font-semibold" style="color:var(--text-primary);">${escapeHtml(c.product)}</div>
+            ${c.sub_product ? `<div class="text-xs" style="color:var(--text-tertiary);">${escapeHtml(c.sub_product)}</div>` : ''}
+          </div>
+          <div class="text-xs flex-shrink-0" style="color:var(--text-tertiary);">${escapeHtml(c.date_received)}</div>
+        </div>
+        <div class="text-sm mb-2" style="color:var(--text-secondary);">
+          <strong>Issue:</strong> ${escapeHtml(c.issue)}${c.sub_issue ? ' — ' + escapeHtml(c.sub_issue) : ''}
+        </div>`;
+
+      if (c.narrative) {
+        html += `<details class="glass-inset rounded-xl p-4 mb-3">
+          <summary class="text-sm font-medium cursor-pointer" style="color:var(--accent);">View Complaint Narrative</summary>
+          <p class="text-sm mt-3 whitespace-pre-wrap" style="color:var(--text-primary);line-height:1.6;">${escapeHtml(c.narrative)}</p>
+          <button type="button" class="glass-btn glass-btn--pill text-xs px-3 py-1 mt-3 copy-narrative"
+                  onclick="copyNarrative(this)" data-text="${escapeHtml(c.narrative).replace(/"/g, '&quot;')}">
+            Copy to Clipboard
+          </button>
+        </details>`;
+      }
+
+      const isWin = c.company_response && (c.company_response.includes('monetary relief') || c.company_response.includes('non-monetary relief'));
+      html += `<div class="flex gap-4 text-xs items-center" style="color:var(--text-tertiary);">
+          ${c.company_response ? `<span style="${isWin ? 'color:#30d158;font-weight:600;' : ''}"><strong>Response:</strong> ${escapeHtml(c.company_response)}${isWin ? ' ✓' : ''}</span>` : ''}
+          ${c.state ? `<span><strong>State:</strong> ${escapeHtml(c.state)}</span>` : ''}
+        </div>
+      </div>`;
     });
+    html += '</div>';
+  } else {
+    html += `<div class="glass-card glass-card--light rounded-2xl p-6 text-center">
+      <p class="text-sm" style="color:var(--text-tertiary);">No complaints found for "${escapeHtml(company)}"</p>
+    </div>`;
+  }
+
+  resultsContainer.innerHTML = html;
+}
+
+function copyNarrative(btn) {
+  const text = btn.dataset.text;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy to Clipboard'; }, 2000);
   });
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const company = document.getElementById('companyInput').value.trim();
+  if (!company) return;
+
+  const narrativesOnly = document.getElementById('narrativesOnly').checked;
+  const responseFilter = document.getElementById('responseFilter').value;
+
+  setLoading(true);
+  resultsContainer.innerHTML = '';
+
+  try {
+    const params = new URLSearchParams({ company, narratives_only: narrativesOnly });
+    if (responseFilter) params.set('response_filter', responseFilter);
+    const resp = await fetch(`/api/cfpb-search?${params}`);
+    const data = await resp.json();
+    renderResults(data, company);
+  } catch (err) {
+    resultsContainer.innerHTML = `<div class="glass-card glass-card--light rounded-2xl p-5 text-center">
+      <p class="text-sm" style="color:#ff453a;">Search failed: ${escapeHtml(err.message)}</p>
+    </div>`;
+  } finally {
+    setLoading(false);
+  }
 });
 </script>
 {% endblock %}

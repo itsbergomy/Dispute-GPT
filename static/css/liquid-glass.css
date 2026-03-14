@@ -157,13 +157,17 @@ body.glass-body p { color: var(--text-secondary); line-height: 1.7; }
   overflow: hidden;
 }
 
-/* Specular reflection overlay */
+/* Specular reflection overlay + frosted noise grain */
 .glass-card::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--glass-reflection);
+  background:
+    url('/static/img/noise.png'),
+    var(--glass-reflection);
+  background-size: 128px 128px, 100% 100%;
+  background-repeat: repeat, no-repeat;
   pointer-events: none;
   z-index: 1;
 }

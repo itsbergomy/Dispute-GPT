@@ -7,6 +7,9 @@
 <main class="flex justify-center items-start min-h-[90vh] px-4 py-10">
   <div class="glass-card glass-card--heavy glass-p w-full max-w-2xl glass-animate-in">
 
+    <a href="{% if current_user.is_authenticated and current_user.plan == 'business' %}{{ url_for('business_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}"
+       class="absolute top-4 left-4 glass-btn glass-btn--ghost p-3 rounded-full">&larr; Back</a>
+
     <div class="text-center mb-8">
       <div class="glass-icon-well mx-auto mb-4" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:16px;">
         {{ icons.icon_shield(size=28, uid='s1') }}

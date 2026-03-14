@@ -718,7 +718,10 @@ def cfpb_search_api():
 
     from services.cfpb_search import search_complaints
     has_narrative = request.args.get('narratives_only', 'false').lower() == 'true'
-    results = search_complaints(company, limit=25, has_narrative=has_narrative or None)
+    response_filter = request.args.get('response_filter', '') or None
+    results = search_complaints(company, limit=25,
+                                has_narrative=has_narrative or None,
+                                response_filter=response_filter)
     return jsonify(results)
 
 
